@@ -309,50 +309,35 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
   return (
     <>
       <Card className={cn(
-        "border border-zinc-800/80 shadow-2xl bg-[#0c101b]/95 text-white p-5 sm:p-6 flex flex-col group overflow-hidden relative backdrop-blur-xl rounded-2xl",
+        "rounded-2xl bg-white/[0.015] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] text-zinc-100 p-6 sm:p-7 md:p-8 flex flex-col group overflow-hidden relative transition-all duration-300 hover:bg-white/[0.03]",
         className
       )}>
-        {/* Background Neural Ambience */}
-        <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none group-hover:scale-125 transition-transform duration-1000">
-          <Sparkles size={110} className="text-emerald-400" />
-        </div>
-        <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-emerald-500/[0.04] rounded-full blur-3xl pointer-events-none" />
-
-        {/* 1. Header & Active Telemetry Badge */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 z-10 shrink-0">
+        {/* 1. Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 z-10 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-950/70 to-zinc-900 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] shrink-0">
-              <BrainCircuit size={18} className="animate-pulse" />
+            <div className="w-7 h-7 rounded-lg bg-white/[0.02] border border-white/[0.03] flex items-center justify-center text-zinc-500 shrink-0">
+              <BrainCircuit size={15} />
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-xs sm:text-sm font-black uppercase tracking-[0.16em] text-white font-sans">
-                  AI Performance Engine
-                </h3>
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Quant Telemetry
-                </span>
-              </div>
-              <p className="text-[10px] font-mono text-zinc-400 truncate">
-                Active Execution Calibration · {analysis.totalTrades} Trade Sample
-              </p>
+              <h3 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
+                AI Performance Engine
+              </h3>
             </div>
           </div>
 
           {/* Top Action Tabs */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-950/80 border border-zinc-800/80 text-[10px] font-mono font-bold uppercase tracking-wider overflow-x-auto max-w-full">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.015] border border-white/[0.03] text-[10px] font-mono font-medium uppercase tracking-wider overflow-x-auto max-w-full">
             <button
               type="button"
               onClick={() => setActiveTab('statistical_edge')}
               className={cn(
-                "py-1.5 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0",
+                "py-1 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0",
                 activeTab === 'statistical_edge'
-                  ? "bg-zinc-800 text-emerald-400 shadow-sm border border-zinc-700/80"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-white/[0.04] text-zinc-200 border border-white/[0.04]"
+                  : "text-zinc-600 hover:text-zinc-400"
               )}
             >
-              <TrendingUp size={11} className={activeTab === 'statistical_edge' ? "text-emerald-400" : "text-zinc-500"} />
+              <TrendingUp size={11} className={activeTab === 'statistical_edge' ? "text-zinc-300" : "text-zinc-600"} />
               <span>Statistical Edge</span>
             </button>
 
@@ -360,30 +345,27 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
               type="button"
               onClick={() => setActiveTab('guardrails')}
               className={cn(
-                "py-1.5 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 relative shrink-0",
+                "py-1 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 relative shrink-0",
                 activeTab === 'guardrails'
-                  ? "bg-zinc-800 text-rose-400 shadow-sm border border-zinc-700/80"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-white/[0.04] text-zinc-200 border border-white/[0.04]"
+                  : "text-zinc-600 hover:text-zinc-400"
               )}
             >
-              <ShieldAlert size={11} className={activeTab === 'guardrails' ? "text-rose-400" : "text-zinc-500"} />
+              <ShieldAlert size={11} className={activeTab === 'guardrails' ? "text-zinc-300" : "text-zinc-600"} />
               <span>Guardrails</span>
-              {(analysis.tiltClusterCount > 0 || analysis.revengeCount > 0) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 absolute top-0.5 right-0.5 animate-ping" />
-              )}
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('blind_spots')}
               className={cn(
-                "py-1.5 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0",
+                "py-1 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0",
                 activeTab === 'blind_spots'
-                  ? "bg-zinc-800 text-amber-400 shadow-sm border border-zinc-700/80"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-white/[0.04] text-zinc-200 border border-white/[0.04]"
+                  : "text-zinc-600 hover:text-zinc-400"
               )}
             >
-              <Compass size={11} className={activeTab === 'blind_spots' ? "text-amber-400" : "text-zinc-500"} />
+              <Compass size={11} className={activeTab === 'blind_spots' ? "text-zinc-300" : "text-zinc-600"} />
               <span>Blind Spots</span>
             </button>
           </div>
@@ -391,7 +373,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
 
         {/* 2. Enhanced High-Density Metric Cards Grid */}
         <motion.div 
-          className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5 mb-5 z-10"
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5 z-10"
           initial={{ opacity: 0, y: 8, scale: 0.98 }}
           animate={{ 
             opacity: 1, 
@@ -409,15 +391,13 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
             transition={{ duration: 0.45, delay: 0.04, ease: 'easeOut' }}
-            className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-1.5 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-300"
+            className="p-4 sm:p-5 rounded-xl bg-white/[0.01] border border-white/[0.03] space-y-2 flex flex-col justify-between hover:bg-white/[0.02] transition-all duration-300"
           >
-            <div className="text-[10px] sm:text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
               <span>Expectancy</span>
-              <Target size={12} className="text-emerald-400" />
             </div>
             <div className={cn(
-              "text-xl sm:text-2xl font-black font-mono tracking-tight",
-              analysis.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"
+              "text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums text-zinc-100"
             )}>
               {analysis.totalTrades === 0 
                 ? '0.00R' 
@@ -425,7 +405,6 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
                   ? `+${analysis.expectancy.toFixed(2)}R` 
                   : `${analysis.expectancy.toFixed(2)}R`}
             </div>
-            <div className="text-[9px] font-mono text-zinc-500">Per trade expected edge</div>
           </motion.div>
 
           {/* PROFIT FACTOR */}
@@ -433,19 +412,14 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
             transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
-            className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-1.5 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-300"
+            className="p-4 sm:p-5 rounded-xl bg-white/[0.01] border border-white/[0.03] space-y-2 flex flex-col justify-between hover:bg-white/[0.02] transition-all duration-300"
           >
-            <div className="text-[10px] sm:text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
               <span>Profit Factor</span>
-              <Scale size={12} className="text-emerald-400" />
             </div>
-            <div className={cn(
-              "text-xl sm:text-2xl font-black font-mono tracking-tight",
-              analysis.profitFactor >= 1.25 ? "text-emerald-400" : analysis.profitFactor >= 1 ? "text-zinc-200" : "text-rose-400"
-            )}>
+            <div className="text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums text-zinc-100">
               {analysis.profitFactor.toFixed(2)}
             </div>
-            <div className="text-[9px] font-mono text-zinc-500">Gross Win / Gross Loss</div>
           </motion.div>
 
           {/* REAL R:R */}
@@ -453,16 +427,14 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
             transition={{ duration: 0.45, delay: 0.16, ease: 'easeOut' }}
-            className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-1.5 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-300"
+            className="p-4 sm:p-5 rounded-xl bg-white/[0.01] border border-white/[0.03] space-y-2 flex flex-col justify-between hover:bg-white/[0.02] transition-all duration-300"
           >
-            <div className="text-[10px] sm:text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
               <span>Real R:R</span>
-              <Zap size={12} className="text-emerald-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-white">
+            <div className="text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums text-zinc-100">
               {analysis.realizedRMultiple.toFixed(2)}R
             </div>
-            <div className="text-[9px] font-mono text-zinc-500">Realized payoff ratio</div>
           </motion.div>
 
           {/* STREAKS TELEMETRY */}
@@ -470,19 +442,15 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
             transition={{ duration: 0.45, delay: 0.22, ease: 'easeOut' }}
-            className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-1.5 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-300"
+            className="p-4 sm:p-5 rounded-xl bg-white/[0.01] border border-white/[0.03] space-y-2 flex flex-col justify-between hover:bg-white/[0.02] transition-all duration-300"
           >
-            <div className="text-[10px] sm:text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
               <span>Streaks (W/L)</span>
-              <Flame size={12} className="text-amber-400" />
             </div>
-            <div className="text-lg sm:text-xl font-black font-mono tracking-tight text-white flex items-center gap-1.5">
-              <span className="text-emerald-400">{analysis.winStreak}W</span>
+            <div className="text-lg sm:text-xl font-bold font-mono tracking-tight tabular-nums text-zinc-100 flex items-center gap-1.5">
+              <span>{analysis.winStreak}W</span>
               <span className="text-zinc-600">/</span>
-              <span className="text-rose-400">{analysis.lossStreak}L</span>
-            </div>
-            <div className="text-[9px] font-mono text-zinc-500 truncate">
-              Current: {analysis.currentStreak}{analysis.currentStreakType === 'win' ? 'W' : analysis.currentStreakType === 'loss' ? 'L' : '-'}
+              <span>{analysis.lossStreak}L</span>
             </div>
           </motion.div>
         </motion.div>
@@ -490,21 +458,21 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
         {/* Tab Detail View */}
         <div className="flex-1 space-y-3 z-10 mb-4">
           {activeTab === 'statistical_edge' && (
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/20 flex items-start gap-3 animate-in fade-in duration-200">
-              <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 sm:p-4 rounded-xl bg-white/[0.01] border border-white/[0.03] flex items-start gap-3 animate-in fade-in duration-200">
+              <CheckCircle2 size={16} className="text-zinc-400 shrink-0 mt-0.5" />
               <div className="space-y-1 text-xs font-mono min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-bold text-emerald-400 uppercase tracking-wide">Edge Classification:</span>
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-[10px] font-black border border-emerald-500/30 font-mono shrink-0">
+                  <span className="font-medium text-zinc-400 uppercase tracking-wide">Edge Classification:</span>
+                  <span className="px-2 py-0.5 rounded bg-white/[0.02] text-zinc-300 text-[10px] font-bold border border-white/[0.03] font-mono shrink-0">
                     {analysis.edgeRating}
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed font-sans">
+                <p className="text-[11px] text-zinc-500 leading-relaxed font-sans">
                   {analysis.expectancy > 0 
-                    ? `Mathematical edge confirmed. System compounds positive expectancy under disciplined 2.0R targets.` 
+                    ? `Mathematical edge confirmed. System compounds positive expectancy under disciplined targets.` 
                     : analysis.totalTrades === 0
-                      ? `Dynamic telemetry active. Log your trades in the journal to calibrate quantitative distribution.`
-                      : `Expectancy is currently negative (${analysis.expectancy.toFixed(2)}R). Review stop discipline and eliminate revenge sizing.`}
+                      ? `Awaiting trade entries to calibrate quantitative distribution.`
+                      : `Expectancy is currently negative (${analysis.expectancy.toFixed(2)}R). Review stop discipline and avoid revenge sizing.`}
                 </p>
               </div>
             </div>
@@ -583,7 +551,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
         </div>
 
         {/* 3. Action Footer & Paywall Triggers */}
-        <div className="pt-3.5 border-t border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-10 shrink-0">
+        <div className="pt-3.5 border-t border-white/[0.03] flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-10 shrink-0">
           <div className="flex flex-wrap items-center gap-2">
             {/* Quick Trigger: Audit Trade Log */}
             <Button
@@ -591,9 +559,9 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
               size="sm"
               variant="outline"
               onClick={() => navigate('/ai-insights')}
-              className="h-8 px-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-zinc-700/80 font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+              className="h-8 px-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] text-zinc-300 border-white/[0.03] font-mono text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5"
             >
-              <Bot size={13} className="text-emerald-400" />
+              <Bot size={13} className="text-zinc-500" />
               <span>Audit Trade Log</span>
             </Button>
 
@@ -603,9 +571,9 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
               size="sm"
               variant="outline"
               onClick={handleTriggerMonteCarlo}
-              className="h-8 px-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-zinc-700/80 font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+              className="h-8 px-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] text-zinc-300 border-white/[0.03] font-mono text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5"
             >
-              <Binary size={13} className="text-indigo-400" />
+              <Binary size={13} className="text-zinc-500" />
               <span>Run Monte Carlo</span>
             </Button>
 
@@ -615,9 +583,9 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
               size="sm"
               variant="outline"
               onClick={() => setIsKellyModalOpen(true)}
-              className="h-8 px-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-zinc-700/80 font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+              className="h-8 px-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] text-zinc-300 border-white/[0.03] font-mono text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5"
             >
-              <Scale size={13} className="text-amber-400" />
+              <Scale size={13} className="text-zinc-500" />
               <span>Calibrate Kelly</span>
             </Button>
           </div>
@@ -625,7 +593,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
           <button
             type="button"
             onClick={() => navigate('/analytics')}
-            className="text-[10px] font-mono text-zinc-400 hover:text-emerald-400 transition-colors flex items-center gap-1 uppercase tracking-wider font-bold shrink-0 self-end sm:self-auto"
+            className="text-[10px] font-mono text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1 uppercase tracking-wider font-medium shrink-0 self-end sm:self-auto"
           >
             <span>Full Quant Desk</span>
             <ArrowRight size={11} />

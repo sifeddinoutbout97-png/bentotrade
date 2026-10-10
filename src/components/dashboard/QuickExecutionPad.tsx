@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { useTrades } from '@/context/TradeContext';
 import { getMarketTypeFromTicker } from '@/lib/utils';
-import { Zap, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Standard multipliers for futures & CFDs
@@ -43,9 +43,6 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Quick ticker presets
-  const presets = ['MNQ', 'NQ', 'ES', 'MES', 'GC', 'BTC'];
 
   // Calculate live preview PnL
   const entryNum = parseFloat(entryPrice) || 0;
@@ -117,50 +114,26 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
   return (
     <div
       className={cn(
-        "rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-5 flex flex-col justify-between",
-        "transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:ring-white/20 hover:shadow-2xl group",
+        "rounded-2xl bg-white/[0.015] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-6 sm:p-7 md:p-8 flex flex-col justify-between",
+        "transition-all duration-300 hover:bg-white/[0.03] group",
         className
       )}
     >
       <div>
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-              <Zap className="w-3 h-3" />
-            </div>
-            <h3 className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-white">
-              Quick Execution Pad
-            </h3>
-          </div>
-          <span className="text-[10px] font-mono text-zinc-400">Instant Log</span>
-        </div>
-
-        {/* Quick Ticker Chips */}
-        <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-1 scrollbar-none">
-          {presets.map((sym) => (
-            <button
-              key={sym}
-              type="button"
-              onClick={() => setTicker(sym)}
-              className={cn(
-                "px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold tracking-wider transition-all shrink-0",
-                ticker.toUpperCase() === sym
-                  ? "bg-white text-zinc-950 shadow-sm"
-                  : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 ring-1 ring-white/5"
-              )}
-            >
-              ${sym}
-            </button>
-          ))}
+        <div className="flex items-center justify-between pb-3 border-b border-white/[0.03]">
+          <h3 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
+            Quick Execution Pad
+          </h3>
+          <span className="text-[10px] font-mono text-zinc-600">Manual Log</span>
         </div>
 
         {/* Trade Form */}
-        <form onSubmit={handleSubmit} className="mt-3.5 space-y-3">
-          {/* Ticker & Direction */}
+        <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+          {/* Single Ticker Input & Bias */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">
+              <label className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-1">
                 Ticker
               </label>
               <input
@@ -168,23 +141,23 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
                 value={ticker}
                 onChange={(e) => setTicker(e.target.value.toUpperCase())}
                 placeholder="MNQ"
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-white uppercase focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
+                className="w-full bg-black/40 border border-white/[0.03] rounded-xl px-2.5 py-1.5 text-xs font-mono font-medium text-zinc-200 uppercase focus:outline-none focus:border-white/10"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">
+              <label className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-1">
                 Bias
               </label>
-              <div className="grid grid-cols-2 gap-1 bg-black/40 p-0.5 rounded-xl border border-white/10">
+              <div className="grid grid-cols-2 gap-1 bg-black/40 p-0.5 rounded-xl border border-white/[0.03]">
                 <button
                   type="button"
                   onClick={() => setDirection('long')}
                   className={cn(
                     "py-1 text-[10px] font-mono font-bold rounded-lg transition-all",
                     direction === 'long'
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                      : "text-zinc-400 hover:text-white"
+                      ? "bg-white/[0.08] text-zinc-100 border border-white/[0.1]"
+                      : "text-zinc-600 hover:text-zinc-400"
                   )}
                 >
                   LONG
@@ -195,8 +168,8 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
                   className={cn(
                     "py-1 text-[10px] font-mono font-bold rounded-lg transition-all",
                     direction === 'short'
-                      ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                      : "text-zinc-400 hover:text-white"
+                      ? "bg-white/[0.08] text-zinc-100 border border-white/[0.1]"
+                      : "text-zinc-600 hover:text-zinc-400"
                   )}
                 >
                   SHORT
@@ -208,7 +181,7 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
           {/* Entry, Exit & Quantity */}
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">
+              <label className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-1">
                 Entry
               </label>
               <input
@@ -217,11 +190,11 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
                 value={entryPrice}
                 onChange={(e) => setEntryPrice(e.target.value)}
                 placeholder="20500"
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
+                className="w-full bg-black/40 border border-white/[0.03] rounded-xl px-2.5 py-1.5 text-xs font-mono text-zinc-200 tabular-nums focus:outline-none focus:border-white/10"
               />
             </div>
             <div>
-              <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">
+              <label className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-1">
                 Exit
               </label>
               <input
@@ -230,11 +203,11 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
                 value={exitPrice}
                 onChange={(e) => setExitPrice(e.target.value)}
                 placeholder="20540"
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
+                className="w-full bg-black/40 border border-white/[0.03] rounded-xl px-2.5 py-1.5 text-xs font-mono text-zinc-200 tabular-nums focus:outline-none focus:border-white/10"
               />
             </div>
             <div>
-              <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">
+              <label className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-1">
                 Size
               </label>
               <input
@@ -244,34 +217,32 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="1"
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
+                className="w-full bg-black/40 border border-white/[0.03] rounded-xl px-2.5 py-1.5 text-xs font-mono text-zinc-200 tabular-nums focus:outline-none focus:border-white/10"
               />
             </div>
           </div>
 
           {/* Realtime PnL Preview */}
-          <div className="bg-black/30 border border-white/5 rounded-xl p-2.5 flex items-center justify-between text-xs font-mono">
-            <span className="text-[10px] text-zinc-400 uppercase">Estimated PnL:</span>
+          <div className="bg-black/30 border border-white/[0.03] rounded-xl p-2.5 flex items-center justify-between text-xs font-mono">
+            <span className="text-[10px] text-zinc-600 uppercase">Estimated PnL:</span>
             {estimatedPnl !== null ? (
               <span
                 className={cn(
-                  "font-bold",
-                  estimatedPnl >= 0
-                    ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]"
-                    : "text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]"
+                  "font-bold tabular-nums tracking-tight",
+                  estimatedPnl >= 0 ? "text-emerald-400" : "text-rose-500"
                 )}
               >
                 {estimatedPnl >= 0 ? `+$${estimatedPnl.toFixed(2)}` : `-$${Math.abs(estimatedPnl).toFixed(2)}`}
               </span>
             ) : (
-              <span className="text-zinc-500 font-mono text-[11px]">—</span>
+              <span className="text-zinc-600 font-mono text-[11px]">—</span>
             )}
           </div>
 
           {/* Feedback Messages */}
           {successMsg && (
-            <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-mono bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-xl">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            <div className="flex items-center gap-1.5 text-zinc-300 text-xs font-mono bg-white/[0.02] border border-white/[0.05] px-2.5 py-1.5 rounded-xl">
+              <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
               <span>{successMsg}</span>
             </div>
           )}
@@ -288,8 +259,8 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
             type="submit"
             disabled={isSubmitting}
             className={cn(
-              "w-full py-2 px-3 rounded-xl font-mono text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2",
-              "bg-white text-zinc-950 hover:bg-zinc-200 active:scale-[0.98] shadow-lg disabled:opacity-50"
+              "w-full py-2 px-3 rounded-xl font-mono text-xs font-medium tracking-wider uppercase transition-all flex items-center justify-center gap-2",
+              "bg-transparent border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 active:scale-[0.99] disabled:opacity-50"
             )}
           >
             {isSubmitting ? (
@@ -298,17 +269,14 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
                 <span>Broadcasting to Ledger...</span>
               </>
             ) : (
-              <>
-                <Zap className="w-3.5 h-3.5 fill-current" />
-                <span>Execute Log</span>
-              </>
+              <span>Log Execution</span>
             )}
           </button>
         </form>
       </div>
 
-      <div className="pt-2 text-[9px] font-mono text-zinc-400 text-center">
-        Writes directly to Supabase ledger
+      <div className="pt-3 border-t border-white/[0.03] text-[9px] font-mono text-zinc-600 text-center mt-3">
+        Direct ledger execution
       </div>
     </div>
   );

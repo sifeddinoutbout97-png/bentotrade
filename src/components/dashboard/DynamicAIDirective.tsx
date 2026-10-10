@@ -137,46 +137,17 @@ export const DynamicAIDirective: React.FC<DynamicAIDirectiveProps> = ({ trades, 
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur-xl p-4 sm:p-5",
-        "transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:ring-white/20 hover:shadow-2xl group",
+        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.015] border border-white/[0.03] text-[11px] font-mono text-zinc-400 max-w-full overflow-hidden transition-all hover:bg-white/[0.03]",
         className
       )}
     >
-      {/* Background ambient pulse */}
-      <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-emerald-500/5 blur-3xl pointer-events-none group-hover:bg-emerald-500/10 transition-colors" />
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
-        <div className="flex items-start sm:items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-white/5 ring-1 ring-white/10 flex items-center justify-center shrink-0 text-white group-hover:scale-105 transition-transform">
-            <Icon className="w-5 h-5 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest uppercase font-mono ring-1",
-                directive.badgeColor
-              )}>
-                {directive.badge}
-              </span>
-              <span className="text-xs font-mono font-bold text-white tracking-tight">
-                {directive.title}
-              </span>
-            </div>
-            <p className="text-xs sm:text-[13px] font-mono text-zinc-300 tracking-tight leading-relaxed">
-              {directive.message}
-            </p>
-          </div>
-        </div>
-
-        <div className="sm:text-right shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
-          <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
-            Protocol Guidance
-          </span>
-          <span className="text-[11px] font-mono text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)] font-semibold">
-            {directive.action}
-          </span>
-        </div>
-      </div>
+      <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0" />
+      <span className="text-zinc-600 font-medium uppercase tracking-widest text-[10px] shrink-0">
+        AI Directive:
+      </span>
+      <span className="text-zinc-400 truncate text-[11px]">
+        {directive.message.replace(/^[⚠️⚡]\s*/, '')}
+      </span>
     </div>
   );
 };
