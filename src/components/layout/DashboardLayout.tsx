@@ -19,14 +19,14 @@ export const DashboardLayout = ({ children, fullHeight }: DashboardLayoutProps) 
   return (
     <div className="flex h-screen bg-background font-sans text-foreground overflow-x-hidden">
       <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative pt-14 md:pt-0">
         <div className={cn(
           "flex-1 overflow-x-hidden",
           fullHeight ? "overflow-hidden" : "overflow-y-auto"
         )}>
           <div className={cn(
             "mx-auto w-full",
-            fullHeight ? "h-full" : "max-w-[1200px] p-6 md:p-10 md:px-16 lg:px-24"
+            fullHeight ? "h-full" : "max-w-[1400px] p-4 sm:p-6 md:p-8 lg:p-10 pb-24 md:pb-10"
           )}>
             {children}
           </div>

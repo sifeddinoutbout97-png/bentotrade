@@ -309,7 +309,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
   return (
     <>
       <Card className={cn(
-        "border-zinc-800/80 shadow-2xl bg-[#090d16] text-white p-5 flex flex-col group overflow-hidden relative backdrop-blur-[24px] rounded-[2rem]",
+        "border border-zinc-800/80 shadow-2xl bg-[#0c101b]/95 text-white p-5 sm:p-6 flex flex-col group overflow-hidden relative backdrop-blur-xl rounded-2xl",
         className
       )}>
         {/* Background Neural Ambience */}
@@ -319,34 +319,34 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
         <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-emerald-500/[0.04] rounded-full blur-3xl pointer-events-none" />
 
         {/* 1. Header & Active Telemetry Badge */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 z-10 shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 z-10 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-950/70 to-zinc-900 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] shrink-0">
-              <BrainCircuit size={17} className="animate-pulse" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-950/70 to-zinc-900 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] shrink-0">
+              <BrainCircuit size={18} className="animate-pulse" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-black uppercase tracking-[0.18em] text-white font-sans">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-black uppercase tracking-[0.16em] text-white font-sans">
                   AI Performance Engine
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono flex items-center gap-1.5">
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Deterministic Quant / Behavioral Telemetry
+                  Quant Telemetry
                 </span>
               </div>
-              <p className="text-[10px] font-mono text-zinc-400">
-                Active Execution Calibration • {analysis.totalTrades} Trade Sample
+              <p className="text-[10px] font-mono text-zinc-400 truncate">
+                Active Execution Calibration · {analysis.totalTrades} Trade Sample
               </p>
             </div>
           </div>
 
-          {/* Top Action Badges */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-950/80 border border-zinc-800/80 text-[10px] font-mono font-bold uppercase tracking-wider">
+          {/* Top Action Tabs */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-950/80 border border-zinc-800/80 text-[10px] font-mono font-bold uppercase tracking-wider overflow-x-auto max-w-full">
             <button
               type="button"
               onClick={() => setActiveTab('statistical_edge')}
               className={cn(
-                "py-1 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5",
+                "py-1.5 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0",
                 activeTab === 'statistical_edge'
                   ? "bg-zinc-800 text-emerald-400 shadow-sm border border-zinc-700/80"
                   : "text-zinc-400 hover:text-zinc-200"
@@ -360,7 +360,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
               type="button"
               onClick={() => setActiveTab('guardrails')}
               className={cn(
-                "py-1 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 relative",
+                "py-1.5 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 relative shrink-0",
                 activeTab === 'guardrails'
                   ? "bg-zinc-800 text-rose-400 shadow-sm border border-zinc-700/80"
                   : "text-zinc-400 hover:text-zinc-200"
@@ -377,7 +377,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
               type="button"
               onClick={() => setActiveTab('blind_spots')}
               className={cn(
-                "py-1 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5",
+                "py-1.5 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0",
                 activeTab === 'blind_spots'
                   ? "bg-zinc-800 text-amber-400 shadow-sm border border-zinc-700/80"
                   : "text-zinc-400 hover:text-zinc-200"
@@ -389,9 +389,9 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
           </div>
         </div>
 
-        {/* 2. High-Density Metric Cards Grid */}
+        {/* 2. Enhanced High-Density Metric Cards Grid */}
         <motion.div 
-          className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 z-10"
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5 mb-5 z-10"
           initial={{ opacity: 0, y: 8, scale: 0.98 }}
           animate={{ 
             opacity: 1, 
@@ -409,14 +409,14 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
             transition={{ duration: 0.45, delay: 0.04, ease: 'easeOut' }}
-            className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-1 transition-transform duration-300 hover:scale-[1.02]"
+            className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-1.5 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-300"
           >
-            <div className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-[10px] sm:text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
               <span>Expectancy</span>
-              <Target size={11} className="text-emerald-400" />
+              <Target size={12} className="text-emerald-400" />
             </div>
             <div className={cn(
-              "text-lg font-black font-mono tracking-tight",
+              "text-xl sm:text-2xl font-black font-mono tracking-tight",
               analysis.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"
             )}>
               {analysis.totalTrades === 0 
@@ -425,7 +425,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
                   ? `+${analysis.expectancy.toFixed(2)}R` 
                   : `${analysis.expectancy.toFixed(2)}R`}
             </div>
-            <div className="text-[8px] font-mono text-zinc-500">Per trade value</div>
+            <div className="text-[9px] font-mono text-zinc-500">Per trade expected edge</div>
           </motion.div>
 
           {/* PROFIT FACTOR */}
@@ -433,19 +433,19 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
             transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
-            className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-1 transition-transform duration-300 hover:scale-[1.02]"
+            className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-1.5 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-300"
           >
-            <div className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-[10px] sm:text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
               <span>Profit Factor</span>
-              <Scale size={11} className="text-emerald-400" />
+              <Scale size={12} className="text-emerald-400" />
             </div>
             <div className={cn(
-              "text-lg font-black font-mono tracking-tight",
+              "text-xl sm:text-2xl font-black font-mono tracking-tight",
               analysis.profitFactor >= 1.25 ? "text-emerald-400" : analysis.profitFactor >= 1 ? "text-zinc-200" : "text-rose-400"
             )}>
               {analysis.profitFactor.toFixed(2)}
             </div>
-            <div className="text-[8px] font-mono text-zinc-500">Gross P / Gross L</div>
+            <div className="text-[9px] font-mono text-zinc-500">Gross Win / Gross Loss</div>
           </motion.div>
 
           {/* REAL R:R */}
@@ -453,35 +453,35 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
             transition={{ duration: 0.45, delay: 0.16, ease: 'easeOut' }}
-            className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-1 transition-transform duration-300 hover:scale-[1.02]"
+            className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-1.5 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-300"
           >
-            <div className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-[10px] sm:text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
               <span>Real R:R</span>
-              <Zap size={11} className="text-emerald-400" />
+              <Zap size={12} className="text-emerald-400" />
             </div>
-            <div className="text-lg font-black font-mono tracking-tight text-white">
+            <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-white">
               {analysis.realizedRMultiple.toFixed(2)}R
             </div>
-            <div className="text-[8px] font-mono text-zinc-500">Realized payoff</div>
+            <div className="text-[9px] font-mono text-zinc-500">Realized payoff ratio</div>
           </motion.div>
 
-          {/* STREAK TELEMETRY */}
+          {/* STREAKS TELEMETRY */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
             transition={{ duration: 0.45, delay: 0.22, ease: 'easeOut' }}
-            className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-1 transition-transform duration-300 hover:scale-[1.02]"
+            className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-1.5 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-300"
           >
-            <div className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-[10px] sm:text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
               <span>Streaks (W/L)</span>
-              <Flame size={11} className="text-amber-400" />
+              <Flame size={12} className="text-amber-400" />
             </div>
-            <div className="text-base font-black font-mono tracking-tight text-white flex items-center gap-1.5">
+            <div className="text-lg sm:text-xl font-black font-mono tracking-tight text-white flex items-center gap-1.5">
               <span className="text-emerald-400">{analysis.winStreak}W</span>
               <span className="text-zinc-600">/</span>
               <span className="text-rose-400">{analysis.lossStreak}L</span>
             </div>
-            <div className="text-[8px] font-mono text-zinc-500">
+            <div className="text-[9px] font-mono text-zinc-500 truncate">
               Current: {analysis.currentStreak}{analysis.currentStreakType === 'win' ? 'W' : analysis.currentStreakType === 'loss' ? 'L' : '-'}
             </div>
           </motion.div>
@@ -490,12 +490,12 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
         {/* Tab Detail View */}
         <div className="flex-1 space-y-3 z-10 mb-4">
           {activeTab === 'statistical_edge' && (
-            <div className="p-3 rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/20 flex items-start gap-2.5 animate-in fade-in duration-200">
-              <CheckCircle2 size={15} className="text-emerald-400 shrink-0 mt-0.5" />
-              <div className="space-y-0.5 text-xs font-mono">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-emerald-400 uppercase">Edge Classification:</span>
-                  <span className="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 text-[10px] font-black border border-emerald-500/30">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/20 flex items-start gap-3 animate-in fade-in duration-200">
+              <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+              <div className="space-y-1 text-xs font-mono min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-emerald-400 uppercase tracking-wide">Edge Classification:</span>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-[10px] font-black border border-emerald-500/30 font-mono shrink-0">
                     {analysis.edgeRating}
                   </span>
                 </div>
@@ -511,23 +511,23 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
           )}
 
           {activeTab === 'guardrails' && (
-            <div className="space-y-2 animate-in fade-in duration-200">
-              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div className="space-y-2.5 animate-in fade-in duration-200">
+              <div className="grid grid-cols-2 gap-2.5 text-xs font-mono">
                 <div className={cn(
-                  "p-2.5 rounded-xl border flex items-center justify-between",
+                  "p-3 rounded-xl border flex items-center justify-between",
                   analysis.tiltClusterCount > 0 
                     ? "bg-rose-500/10 border-rose-500/30 text-rose-300" 
-                    : "bg-zinc-900/50 border-zinc-800 text-zinc-300"
+                    : "bg-zinc-900/60 border-zinc-800 text-zinc-300"
                 )}>
                   <span className="text-[10px] uppercase font-bold">Sub-30m Re-Entries</span>
                   <span className="font-black text-sm">{analysis.tiltClusterCount}</span>
                 </div>
 
                 <div className={cn(
-                  "p-2.5 rounded-xl border flex items-center justify-between",
+                  "p-3 rounded-xl border flex items-center justify-between",
                   (analysis.fomoCount + analysis.revengeCount) > 0 
                     ? "bg-rose-500/10 border-rose-500/30 text-rose-300" 
-                    : "bg-zinc-900/50 border-zinc-800 text-zinc-300"
+                    : "bg-zinc-900/60 border-zinc-800 text-zinc-300"
                 )}>
                   <span className="text-[10px] uppercase font-bold">FOMO / Tilt Tags</span>
                   <span className="font-black text-sm">{analysis.fomoCount + analysis.revengeCount}</span>
@@ -565,9 +565,9 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
           )}
 
           {activeTab === 'blind_spots' && (
-            <div className="p-3 rounded-2xl bg-amber-500/[0.05] border border-amber-500/20 space-y-1.5 animate-in fade-in duration-200">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/[0.05] border border-amber-500/20 space-y-2 animate-in fade-in duration-200">
               <div className="flex items-center gap-1.5 text-amber-400 font-mono text-xs font-bold uppercase tracking-wider">
-                <Compass size={13} className="shrink-0" />
+                <Compass size={14} className="shrink-0" />
                 <span>Synthesized Execution Blind Spots</span>
               </div>
               <div className="space-y-1">
@@ -583,8 +583,8 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
         </div>
 
         {/* 3. Action Footer & Paywall Triggers */}
-        <div className="pt-3 border-t border-zinc-800/80 flex flex-wrap items-center justify-between gap-2 z-10 shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="pt-3.5 border-t border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-10 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Quick Trigger: Audit Trade Log */}
             <Button
               type="button"
@@ -625,7 +625,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
           <button
             type="button"
             onClick={() => navigate('/analytics')}
-            className="text-[10px] font-mono text-zinc-400 hover:text-emerald-400 transition-colors flex items-center gap-1 uppercase tracking-wider font-bold"
+            className="text-[10px] font-mono text-zinc-400 hover:text-emerald-400 transition-colors flex items-center gap-1 uppercase tracking-wider font-bold shrink-0 self-end sm:self-auto"
           >
             <span>Full Quant Desk</span>
             <ArrowRight size={11} />
