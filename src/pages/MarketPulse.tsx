@@ -21,6 +21,7 @@ const ImpactIcon = ({ impact, isPassed }: { impact: string; isPassed?: boolean }
     case 'high':
       return <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] mx-auto" />;
     case 'medium':
+    case 'med':
       return <div className="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.4)] mx-auto" />;
     case 'low':
       return <div className="w-3 h-3 rounded-full bg-yellow-500 mx-auto" />;
@@ -73,6 +74,23 @@ const SkeletonRow = () => (
     </td>
   </tr>
 );
+
+const formatDateHeader = (timeStr: string): { dateKey: string; dateLabel: string } => {
+  const d = new Date(timeStr);
+  if (isNaN(d.getTime())) {
+    return { dateKey: 'unknown', dateLabel: 'UPCOMING RELEASES' };
+  }
+
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+  const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const day = d.toLocaleDateString('en-US', { day: 'numeric' });
+  const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  return {
+    dateKey,
+    dateLabel: `${weekday}, ${month} ${day}`
+  };
+};
 
 export const MarketPulse = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -135,6 +153,39 @@ export const MarketPulse = () => {
       nextActiveCatalystId: nextId
     };
   }, [events, currentTime]);
+
+  // Group events by local date and compute time-clustering for time blanking
+  const groupedDateList = useMemo(() => {
+    const groupsMap = new Map<string, { dateLabel: string; events: Array<EconomicEvent & { isFirstInTimeSlot: boolean; timeSlotFormatted: string }> }>();
+
+    events.forEach((event) => {
+      const { dateKey, dateLabel } = formatDateHeader(event.time);
+      if (!groupsMap.has(dateKey)) {
+        groupsMap.set(dateKey, { dateLabel, events: [] });
+      }
+      const group = groupsMap.get(dateKey)!;
+
+      const d = new Date(event.time);
+      const timeSlotFormatted = !isNaN(d.getTime()) 
+        ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+        : '--:--';
+
+      const prevEvent = group.events[group.events.length - 1];
+      const isFirstInTimeSlot = !prevEvent || prevEvent.timeSlotFormatted !== timeSlotFormatted;
+
+      group.events.push({
+        ...event,
+        isFirstInTimeSlot,
+        timeSlotFormatted,
+      });
+    });
+
+    return Array.from(groupsMap.entries()).map(([dateKey, data]) => ({
+      dateKey,
+      dateLabel: data.dateLabel,
+      events: data.events,
+    }));
+  }, [events]);
   
   const impactOptions = [
     { id: 'high', label: 'High Impact', color: 'bg-red-500' },
@@ -234,12 +285,14 @@ export const MarketPulse = () => {
         
         <button 
           onClick={() => refresh()}
-          className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-white/70 dark:bg-card border border-zinc-200 dark:border-white/5 rounded-xl md:rounded-2xl shadow-sm hover:bg-zinc-50 dark:hover:bg-accent/50 transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-zinc-950 dark:text-white backdrop-blur-xl"
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-white/70 dark:bg-card border border-zinc-200 dark:border-white/5 rounded-xl md:rounded-2xl shadow-sm hover:bg-zinc-50 dark:hover:bg-accent/50 transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-zinc-950 dark:text-white backdrop-blur-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Manual refresh from Finnhub economic calendar"
         >
-          <RefreshCcw size={12} className={cn("transition-transform duration-700 md:hidden", loading && "animate-spin")} />
-          <RefreshCcw size={14} className={cn("transition-transform duration-700 hidden md:block", loading && "animate-spin")} />
-          <span className="hidden sm:inline">Sync Uplink</span>
-          <span className="sm:hidden">Sync</span>
+          <RefreshCcw size={12} className={cn("transition-transform duration-700 md:hidden", loading && "animate-spin text-primary")} />
+          <RefreshCcw size={14} className={cn("transition-transform duration-700 hidden md:block", loading && "animate-spin text-primary")} />
+          <span className="hidden sm:inline">{loading ? 'SYNCING...' : 'SYNC UPLINK'}</span>
+          <span className="sm:hidden">{loading ? 'SYNCING...' : 'SYNC'}</span>
         </button>
       </header>
 
@@ -343,146 +396,160 @@ export const MarketPulse = () => {
                       </tr>
                     ) : (
                       <AnimatePresence mode="popLayout">
-                        {events.map((event, idx) => {
-                          const eventMs = getEventTimeMs(event.time);
-                          const isPassed = eventMs < currentTime;
-                          const isUpcoming = !isPassed;
-                          const isNextCatalyst = isUpcoming && event.calendar_id === nextActiveCatalystId;
-                          const isHighImpact = (event.impact || '').toLowerCase() === 'high';
-                          const countdownLabel = formatCountdown(eventMs, currentTime);
+                        {groupedDateList.map((group) => (
+                          <React.Fragment key={`desk-group-${group.dateKey}`}>
+                            {/* Full-width Institutional Date Header Row */}
+                            <tr key={`desk-date-header-${group.dateKey}`}>
+                              <td 
+                                colSpan={7} 
+                                className="bg-zinc-900/80 border-y border-zinc-800 text-xs font-bold uppercase tracking-widest text-zinc-400 py-2 px-4"
+                              >
+                                {group.dateLabel}
+                              </td>
+                            </tr>
 
-                          return (
-                            <motion.tr 
-                              key={`desk-${event.calendar_id || idx}-${idx}`}
-                              initial={{ opacity: 0, y: 8 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.98 }}
-                              transition={{ delay: idx * 0.015, duration: 0.2 }}
-                              className={cn(
-                                "transition-colors group relative border-b border-zinc-800/60",
-                                // Passed events styling (dimmed, visually receded)
-                                isPassed && "opacity-45 hover:opacity-75 bg-transparent",
-                                // Upcoming events (full brightness)
-                                isUpcoming && "opacity-100",
-                                // Next Active Catalyst (subtle glowing left border & vibrant accent)
-                                isNextCatalyst 
-                                  ? "border-l-2 border-l-emerald-500 bg-emerald-950/20" 
-                                  : isHighImpact && !isPassed 
-                                    ? "hover:bg-red-950/20"
-                                    : "hover:bg-zinc-900/40"
-                              )}
-                            >
-                              {/* Time & Real-Time Status Column */}
-                              <td className="px-3 py-2.5 whitespace-nowrap">
-                                <div className="flex flex-col gap-0.5">
-                                  <div className="flex items-center gap-1.5">
+                            {/* Events for this specific date */}
+                            {group.events.map((event, idx) => {
+                              const eventMs = getEventTimeMs(event.time);
+                              const isPassed = eventMs < currentTime;
+                              const isUpcoming = !isPassed;
+                              const isNextCatalyst = isUpcoming && event.calendar_id === nextActiveCatalystId;
+                              const isHighImpact = (event.impact || '').toLowerCase() === 'high';
+                              const countdownLabel = formatCountdown(eventMs, currentTime);
+
+                              return (
+                                <motion.tr 
+                                  key={`desk-${event.calendar_id || idx}-${idx}`}
+                                  initial={{ opacity: 0, y: 8 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.98 }}
+                                  transition={{ delay: idx * 0.015, duration: 0.2 }}
+                                  className={cn(
+                                    "transition-colors group relative border-b border-zinc-800/60",
+                                    isPassed && "opacity-45 hover:opacity-75 bg-transparent",
+                                    isUpcoming && "opacity-100",
+                                    isNextCatalyst 
+                                      ? "border-l-2 border-l-emerald-500 bg-emerald-950/20" 
+                                      : isHighImpact && !isPassed 
+                                        ? "hover:bg-red-950/20"
+                                        : "hover:bg-zinc-900/40"
+                                  )}
+                                >
+                                  {/* Time & Real-Time Status Column (with Time Blanking) */}
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    {event.isFirstInTimeSlot ? (
+                                      <div className="flex flex-col gap-0.5">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className={cn(
+                                            "text-xs font-mono font-bold transition-colors",
+                                            isPassed 
+                                              ? "text-zinc-500 line-through decoration-zinc-600" 
+                                              : isNextCatalyst 
+                                                ? "text-emerald-400 font-bold" 
+                                                : "text-zinc-200 group-hover:text-white"
+                                          )}>
+                                            {event.timeSlotFormatted}
+                                          </span>
+                                          {isNextCatalyst && (
+                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-sm bg-emerald-950/50 border border-emerald-800/60 text-emerald-400 text-[8px] font-mono font-bold uppercase tracking-wider animate-pulse">
+                                              <span className="w-1 h-1 rounded-full bg-emerald-400 animate-ping" />
+                                              Next
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          {isPassed ? (
+                                            <span className="text-[8px] font-mono uppercase tracking-wider text-zinc-600">
+                                              Passed
+                                            </span>
+                                          ) : isNextCatalyst ? (
+                                            <span className="text-[8px] font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                                              <span>Active</span>
+                                              <span>• {countdownLabel}</span>
+                                            </span>
+                                          ) : (
+                                            <span className="text-[8px] font-mono uppercase tracking-wider text-zinc-500">
+                                              Upcoming
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : null}
+                                  </td>
+
+                                  {/* Impact Dot Column */}
+                                  <td className="px-3 py-2.5 text-center">
+                                    <div className="flex justify-center">
+                                      <ImpactIcon impact={event.impact} isPassed={isPassed} />
+                                    </div>
+                                  </td>
+
+                                  {/* Country Flag/Label */}
+                                  <td className="px-3 py-2.5">
                                     <span className={cn(
-                                      "text-xs font-mono font-bold transition-colors",
+                                      "px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-bold uppercase tracking-wider border",
                                       isPassed 
-                                        ? "text-zinc-500 line-through decoration-zinc-600" 
+                                        ? "bg-zinc-900/60 text-zinc-500 border-zinc-800" 
+                                        : "bg-zinc-900 text-zinc-300 border-zinc-800"
+                                    )}>
+                                      {event.country}
+                                    </span>
+                                  </td>
+
+                                  {/* Event Name & Identification */}
+                                  <td className="px-3 py-2.5">
+                                    <p className={cn(
+                                      "text-xs font-mono tracking-tight leading-tight transition-colors truncate",
+                                      isPassed 
+                                        ? "text-zinc-500" 
                                         : isNextCatalyst 
                                           ? "text-emerald-400 font-bold" 
-                                          : "text-zinc-200 group-hover:text-white"
+                                          : isHighImpact 
+                                            ? "text-rose-400 font-bold" 
+                                            : "text-zinc-200 group-hover:text-white"
                                     )}>
-                                      {new Date(event.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                    </span>
-                                    {isNextCatalyst && (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-sm bg-emerald-950/50 border border-emerald-800/60 text-emerald-400 text-[8px] font-mono font-bold uppercase tracking-wider animate-pulse">
-                                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-ping" />
-                                        Next
+                                      {event.event}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-wider">
+                                        ID: {event.calendar_id?.substring(0, 8) || 'SYSTEM_GEN'}
                                       </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    {isPassed ? (
-                                      <span className="text-[8px] font-mono uppercase tracking-wider text-zinc-600">
-                                        Passed
-                                      </span>
-                                    ) : isNextCatalyst ? (
-                                      <span className="text-[8px] font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                                        <span>Active</span>
-                                        <span>• {countdownLabel}</span>
-                                      </span>
-                                    ) : (
-                                      <span className="text-[8px] font-mono uppercase tracking-wider text-zinc-500">
-                                        Upcoming
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
+                                      {isNextCatalyst && (
+                                        <span className="text-[8px] font-mono text-emerald-400 uppercase tracking-wider">
+                                          ⚡ CATALYST
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
 
-                              {/* Impact Dot Column */}
-                              <td className="px-3 py-2.5 text-center">
-                                <div className="flex justify-center">
-                                  <ImpactIcon impact={event.impact} isPassed={isPassed} />
-                                </div>
-                              </td>
+                                  {/* Actual Value */}
+                                  <td className={cn(
+                                    "px-3 py-2.5 text-right text-xs font-mono font-bold tabular-nums",
+                                    valueColor(event.actual, event.estimate, event.unit, isPassed)
+                                  )}>
+                                    {event.actual !== null ? `${event.actual.toLocaleString()}${event.unit || ''}` : '--'}
+                                  </td>
 
-                              {/* Country Flag/Label */}
-                              <td className="px-3 py-2.5">
-                                <span className={cn(
-                                  "px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-bold uppercase tracking-wider border",
-                                  isPassed 
-                                    ? "bg-zinc-900/60 text-zinc-500 border-zinc-800" 
-                                    : "bg-zinc-900 text-zinc-300 border-zinc-800"
-                                )}>
-                                  {event.country}
-                                </span>
-                              </td>
+                                  {/* Forecast Value */}
+                                  <td className={cn(
+                                    "px-3 py-2.5 text-right text-xs font-mono font-bold tabular-nums",
+                                    isPassed ? "text-zinc-600" : "text-zinc-400"
+                                  )}>
+                                    {event.estimate !== null ? `${event.estimate.toLocaleString()}${event.unit || ''}` : '--'}
+                                  </td>
 
-                              {/* Event Name & Identification */}
-                              <td className="px-3 py-2.5">
-                                <p className={cn(
-                                  "text-xs font-mono tracking-tight leading-tight transition-colors truncate",
-                                  isPassed 
-                                    ? "text-zinc-500" 
-                                    : isNextCatalyst 
-                                      ? "text-emerald-400 font-bold" 
-                                      : isHighImpact 
-                                        ? "text-rose-400 font-bold" 
-                                        : "text-zinc-200 group-hover:text-white"
-                                )}>
-                                  {event.event}
-                                </p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-wider">
-                                    ID: {event.calendar_id?.substring(0, 8) || 'SYSTEM_GEN'}
-                                  </span>
-                                  {isNextCatalyst && (
-                                    <span className="text-[8px] font-mono text-emerald-400 uppercase tracking-wider">
-                                      ⚡ CATALYST
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Actual Value */}
-                              <td className={cn(
-                                "px-3 py-2.5 text-right text-xs font-mono font-bold tabular-nums",
-                                valueColor(event.actual, event.estimate, event.unit, isPassed)
-                              )}>
-                                {event.actual !== null ? `${event.actual.toLocaleString()}${event.unit || ''}` : '--'}
-                              </td>
-
-                              {/* Forecast Value */}
-                              <td className={cn(
-                                "px-3 py-2.5 text-right text-xs font-mono font-bold tabular-nums",
-                                isPassed ? "text-zinc-600" : "text-zinc-400"
-                              )}>
-                                {event.estimate !== null ? `${event.estimate.toLocaleString()}${event.unit || ''}` : '--'}
-                              </td>
-
-                              {/* Previous Value */}
-                              <td className={cn(
-                                "px-3 py-2.5 text-right text-xs font-mono font-bold tabular-nums",
-                                isPassed ? "text-zinc-700" : "text-zinc-500"
-                              )}>
-                                {event.prev !== null ? `${event.prev.toLocaleString()}${event.unit || ''}` : '--'}
-                              </td>
-                            </motion.tr>
-                          );
-                        })}
+                                  {/* Previous Value */}
+                                  <td className={cn(
+                                    "px-3 py-2.5 text-right text-xs font-mono font-bold tabular-nums",
+                                    isPassed ? "text-zinc-700" : "text-zinc-500"
+                                  )}>
+                                    {event.prev !== null ? `${event.prev.toLocaleString()}${event.unit || ''}` : '--'}
+                                  </td>
+                                </motion.tr>
+                              );
+                            })}
+                          </React.Fragment>
+                        ))}
                       </AnimatePresence>
                     )}
                   </tbody>
@@ -513,102 +580,117 @@ export const MarketPulse = () => {
                   </div>
                 ) : (
                   <AnimatePresence mode="popLayout">
-                    {events.map((event, idx) => {
-                      const eventMs = getEventTimeMs(event.time);
-                      const isPassed = eventMs < currentTime;
-                      const isUpcoming = !isPassed;
-                      const isNextCatalyst = isUpcoming && event.calendar_id === nextActiveCatalystId;
-                      const isHighImpact = (event.impact || '').toLowerCase() === 'high';
-                      const countdownLabel = formatCountdown(eventMs, currentTime);
+                    {groupedDateList.map((group) => (
+                      <div key={`mob-group-${group.dateKey}`} className="space-y-3">
+                        {/* Mobile Date Header */}
+                        <div className="bg-zinc-900/80 border-y border-zinc-800 text-xs font-bold uppercase tracking-widest text-zinc-400 py-2 px-4 rounded-md">
+                          {group.dateLabel}
+                        </div>
 
-                      return (
-                        <motion.div 
-                          key={`mob-${event.calendar_id || idx}-${idx}`}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: idx * 0.03 }}
-                          className={cn(
-                            "p-4 rounded-3xl border transition-all space-y-3 relative overflow-hidden",
-                            isPassed 
-                              ? "opacity-45 bg-zinc-50/30 dark:bg-white/[0.02] border-zinc-200/50 dark:border-white/5" 
-                              : isNextCatalyst 
-                                ? "opacity-100 border-l-4 border-l-primary bg-primary/[0.05] dark:bg-primary/[0.08] border-zinc-950/10 dark:border-white/10 ring-1 ring-primary/30 shadow-md" 
-                                : "opacity-100 border-zinc-950/5 dark:border-white/5 bg-zinc-50/50 dark:bg-white/5",
-                            isHighImpact && !isPassed && !isNextCatalyst && "border-red-500/20"
-                          )}
-                        >
-                          {isHighImpact && !isPassed && (
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/5 blur-2xl rounded-full -mr-4 -mt-4 pointer-events-none" />
-                          )}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={cn(
-                                "text-[10px] font-mono font-bold",
+                        {group.events.map((event, idx) => {
+                          const eventMs = getEventTimeMs(event.time);
+                          const isPassed = eventMs < currentTime;
+                          const isUpcoming = !isPassed;
+                          const isNextCatalyst = isUpcoming && event.calendar_id === nextActiveCatalystId;
+                          const isHighImpact = (event.impact || '').toLowerCase() === 'high';
+                          const countdownLabel = formatCountdown(eventMs, currentTime);
+
+                          return (
+                            <motion.div 
+                              key={`mob-${event.calendar_id || idx}-${idx}`}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.02 }}
+                              className={cn(
+                                "p-4 rounded-xl border transition-all space-y-3 relative overflow-hidden",
                                 isPassed 
-                                  ? "text-zinc-400 dark:text-zinc-500 line-through" 
+                                  ? "opacity-45 bg-zinc-50/30 dark:bg-white/[0.02] border-zinc-200/50 dark:border-white/5" 
                                   : isNextCatalyst 
-                                    ? "text-primary font-black" 
-                                    : "text-zinc-700 dark:text-zinc-300"
-                              )}>
-                                {new Date(event.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                              </span>
-                              <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[8px] font-black uppercase tracking-widest border border-zinc-950/5 dark:border-white/5">
-                                {event.country}
-                              </span>
-                              {isPassed ? (
-                                <span className="px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider bg-zinc-200/60 dark:bg-zinc-800/80 text-zinc-400 dark:text-zinc-500">
-                                  PASSED
-                                </span>
-                              ) : isNextCatalyst ? (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-[7px] font-black uppercase tracking-wider animate-pulse">
-                                  <span className="w-1 h-1 rounded-full bg-primary animate-ping" />
-                                  NEXT ({countdownLabel})
-                                </span>
-                              ) : (
-                                <span className="px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                  UPCOMING
-                                </span>
+                                    ? "opacity-100 border-l-4 border-l-primary bg-primary/[0.05] dark:bg-primary/[0.08] border-zinc-950/10 dark:border-white/10 ring-1 ring-primary/30 shadow-md" 
+                                    : "opacity-100 border-zinc-950/5 dark:border-white/5 bg-zinc-50/50 dark:bg-white/5",
+                                isHighImpact && !isPassed && !isNextCatalyst && "border-red-500/20"
                               )}
-                            </div>
-                            <ImpactIcon impact={event.impact} isPassed={isPassed} />
-                          </div>
+                            >
+                              {isHighImpact && !isPassed && (
+                                <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/5 blur-2xl rounded-full -mr-4 -mt-4 pointer-events-none" />
+                              )}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {event.isFirstInTimeSlot ? (
+                                    <span className={cn(
+                                      "text-[10px] font-mono font-bold",
+                                      isPassed 
+                                        ? "text-zinc-400 dark:text-zinc-500 line-through" 
+                                        : isNextCatalyst 
+                                          ? "text-primary font-black" 
+                                          : "text-zinc-700 dark:text-zinc-300"
+                                    )}>
+                                      {event.timeSlotFormatted}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-mono text-zinc-500">
+                                      ↳ {event.timeSlotFormatted}
+                                    </span>
+                                  )}
+                                  <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[8px] font-black uppercase tracking-widest border border-zinc-950/5 dark:border-white/5">
+                                    {event.country}
+                                  </span>
+                                  {isPassed ? (
+                                    <span className="px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider bg-zinc-200/60 dark:bg-zinc-800/80 text-zinc-400 dark:text-zinc-500">
+                                      PASSED
+                                    </span>
+                                  ) : isNextCatalyst ? (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-[7px] font-black uppercase tracking-wider animate-pulse">
+                                      <span className="w-1 h-1 rounded-full bg-primary animate-ping" />
+                                      NEXT ({countdownLabel})
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                      UPCOMING
+                                    </span>
+                                  )}
+                                </div>
+                                <ImpactIcon impact={event.impact} isPassed={isPassed} />
+                              </div>
 
-                          <h3 className={cn(
-                            "text-sm tracking-tight leading-tight",
-                            isPassed 
-                              ? "text-zinc-400 dark:text-zinc-500 font-medium" 
-                              : isNextCatalyst 
-                                ? "text-zinc-950 dark:text-white font-black" 
-                                : isHighImpact 
-                                  ? "text-rose-500 font-black" 
-                                  : "text-zinc-950 dark:text-white font-black"
-                          )}>
-                            {event.event}
-                          </h3>
+                              <h3 className={cn(
+                                "text-sm tracking-tight leading-tight",
+                                isPassed 
+                                  ? "text-zinc-400 dark:text-zinc-500 font-medium" 
+                                  : isNextCatalyst 
+                                    ? "text-zinc-950 dark:text-white font-black" 
+                                    : isHighImpact 
+                                      ? "text-rose-500 font-black" 
+                                      : "text-zinc-950 dark:text-white font-black"
+                              )}>
+                                {event.event}
+                              </h3>
 
-                          <div className="grid grid-cols-3 gap-2">
-                            <div className="bg-zinc-100/70 dark:bg-white/5 p-2 rounded-xl text-center">
-                              <div className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Actual</div>
-                              <div className={cn("text-xs font-black", valueColor(event.actual, event.estimate, event.unit, isPassed))}>
-                                {event.actual !== null ? `${event.actual}${event.unit || ''}` : '--'}
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="bg-zinc-100/70 dark:bg-white/5 p-2 rounded-xl text-center">
+                                  <div className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Actual</div>
+                                  <div className={cn("text-xs font-black", valueColor(event.actual, event.estimate, event.unit, isPassed))}>
+                                    {event.actual !== null ? `${event.actual}${event.unit || ''}` : '--'}
+                                  </div>
+                                </div>
+                                <div className="bg-zinc-100/70 dark:bg-white/5 p-2 rounded-xl text-center">
+                                  <div className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Forecast</div>
+                                  <div className={cn("text-xs font-black", isPassed ? "text-zinc-400 dark:text-zinc-600" : "text-zinc-500")}>
+                                    {event.estimate !== null ? `${event.estimate}${event.unit || ''}` : '--'}
+                                  </div>
+                                </div>
+                                <div className="bg-zinc-100/70 dark:bg-white/5 p-2 rounded-xl text-center">
+                                  <div className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Prev</div>
+                                  <div className={cn("text-xs font-black", isPassed ? "text-zinc-400 dark:text-zinc-700" : "text-zinc-400")}>
+                                    {event.prev !== null ? `${event.prev}${event.unit || ''}` : '--'}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            <div className="bg-zinc-100/70 dark:bg-white/5 p-2 rounded-xl text-center">
-                              <div className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Forecast</div>
-                              <div className={cn("text-xs font-black", isPassed ? "text-zinc-400 dark:text-zinc-600" : "text-zinc-500")}>
-                                {event.estimate !== null ? `${event.estimate}${event.unit || ''}` : '--'}
-                              </div>
-                            </div>
-                            <div className="bg-zinc-100/70 dark:bg-white/5 p-2 rounded-xl text-center">
-                              <div className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Prev</div>
-                              <div className={cn("text-xs font-black", isPassed ? "text-zinc-400 dark:text-zinc-700" : "text-zinc-400")}>
-                                {event.prev !== null ? `${event.prev}${event.unit || ''}` : '--'}
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </AnimatePresence>
                 )}
               </div>
