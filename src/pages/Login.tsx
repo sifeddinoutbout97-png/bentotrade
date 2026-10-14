@@ -351,6 +351,9 @@ export const Login = () => {
                   <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-zinc-600" />
                   <Input
                     type="email"
+                    name="email"
+                    id="operator-email"
+                    autoComplete="username email"
                     placeholder="trader@desk.terminal"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -362,7 +365,7 @@ export const Login = () => {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block">
+                  <label htmlFor="operator-password" className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block">
                     Password {mode === 'signin' && <span className="text-zinc-600">(optional for OTP)</span>}
                   </label>
                   {mode === 'signin' && (
@@ -380,6 +383,9 @@ export const Login = () => {
                   <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-zinc-600" />
                   <Input
                     type="password"
+                    name="password"
+                    id="operator-password"
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                     placeholder="••••••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

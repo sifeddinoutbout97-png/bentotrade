@@ -13,7 +13,11 @@ export interface Profile {
   role: string | null;
   full_name: string | null;
   display_name: string | null;
+  email?: string | null;
+  avatar_url?: string | null;
   status?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type AppUser = User & { displayName?: string };
@@ -25,6 +29,7 @@ interface AuthContextType {
   loading: boolean;
   isLoading: boolean;
   isAdmin: boolean;
+  isStaff: boolean;
   impersonatingUserId: string | null;
   initiateGhostMode: (id: string) => void;
   exitGhostMode: () => void;
@@ -42,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [impersonatingUserId, setImpersonatingUserId] = useState<string | null>(null);
 
   const effectiveEmail = user?.email;
+  const isStaff = profile?.role === 'admin' || profile?.role === 'moderator' || effectiveEmail === 'sifeddinoutbout97@gmail.com';
   const isAdmin = profile?.role === 'admin' || effectiveEmail === 'sifeddinoutbout97@gmail.com';
 
   const initiateGhostMode = (targetId: string) => {
@@ -249,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading, 
       isLoading: loading,
       isAdmin, 
+      isStaff,
       impersonatingUserId, 
       initiateGhostMode, 
       exitGhostMode, 

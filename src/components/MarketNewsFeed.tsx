@@ -91,9 +91,10 @@ export const MarketNewsFeed: React.FC<MarketNewsFeedProps> = ({ className }) => 
           {news.map((item, idx) => (
             <motion.a
               key={`${item.id}-${idx}`}
-              href={item.url}
+              href={item.url && item.url.startsWith('http') ? item.url : 'https://www.nasdaq.com'}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label={`Read market news: ${item.headline}`}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}

@@ -14,7 +14,9 @@ import { Analytics } from '@/pages/Analytics';
 import Settings from '@/pages/Settings';
 import { Login } from '@/pages/Login';
 import { AdminDashboard } from '@/pages/AdminDashboard';
+import { AdminSupport } from '@/pages/AdminSupport';
 import { MarketPulse } from '@/pages/MarketPulse';
+import { NotFound } from '@/pages/NotFound';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { TradeProvider } from '@/context/TradeContext';
@@ -28,6 +30,7 @@ import { SystemBroadcastListener } from '@/components/SystemBroadcastListener';
 import { SuspensionGuard } from '@/components/SuspensionGuard';
 
 import { BentoCommandPalette } from '@/components/BentoCommandPalette';
+import { GlobalSupportWidget } from '@/components/GlobalSupportWidget';
 
 const SystemWrapper = ({ children }: { children: React.ReactNode }) => {
   const { exitGhostMode, impersonatingUserId } = useAuth();
@@ -36,6 +39,7 @@ const SystemWrapper = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex flex-col relative">
       <SystemBroadcastListener />
       <BentoCommandPalette />
+      <GlobalSupportWidget />
       {children}
       
       {/* Ghost Mode Global Banner */}
@@ -85,6 +89,29 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const StaffRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isStaff, isAdmin, loading, isLoading } = useAuth();
+  const isAuthLoading = loading ?? isLoading ?? false;
+
+  if (isAuthLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isStaff && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isAdmin, loading, isLoading } = useAuth();
   const isAuthLoading = loading ?? isLoading ?? false;
@@ -110,7 +137,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const isFullHeightPage = location.pathname === '/admin';
+  const isFullHeightPage = location.pathname.startsWith('/admin');
 
   return (
     <DashboardLayout fullHeight={isFullHeightPage}>
@@ -152,7 +179,12 @@ export default function App() {
                                 <AdminDashboard />
                               </AdminRoute>
                             } />
-                            <Route path="*" element={<Navigate to="/" replace />} />
+                            <Route path="/admin/support" element={
+                              <StaffRoute>
+                                <AdminSupport />
+                              </StaffRoute>
+                            } />
+                            <Route path="*" element={<NotFound />} />
                           </Routes>
                         </AppLayout>
                       </ProtectedRoute>

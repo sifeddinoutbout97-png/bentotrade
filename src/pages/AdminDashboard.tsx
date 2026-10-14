@@ -12,7 +12,8 @@ import {
   MoreVertical,
   Clock,
   CircleDot,
-  Ghost
+  Ghost,
+  Headphones
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { BroadcastCenter } from '@/components/BroadcastCenter';
@@ -716,6 +717,17 @@ export const AdminDashboard = () => {
                   <Radio size={18} className="text-purple-600 dark:text-purple-500" />
                 </div>
                 Global Broadcast
+              </Button>
+
+              <Button 
+                variant="outline" 
+                className="w-full justify-start h-14 rounded-2xl border-zinc-200 dark:border-white/5 bg-white dark:bg-zinc-950/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-black text-[10px] uppercase tracking-widest group transition-all text-zinc-950 dark:text-white"
+                onClick={() => navigate('/admin/support')}
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mr-4 border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                  <Headphones size={18} className="text-emerald-600 dark:text-emerald-400" />
+                </div>
+                Support Telemetry Desk
               </Button>
             </CardContent>
           </Card>

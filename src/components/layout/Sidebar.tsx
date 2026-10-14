@@ -21,7 +21,8 @@ import {
   Moon,
   Zap,
   Menu,
-  X
+  X,
+  Headphones
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -69,7 +70,7 @@ const NavItem = ({ to, icon, label, isCollapsed = false, emoji, onClick }: NavIt
 export const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isStaff, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
 
@@ -168,6 +169,15 @@ export const Sidebar = () => {
                     icon={<ShieldCheck size={18} />} 
                     label="Control Tower" 
                     emoji="🛡️" 
+                    onClick={closeMobile} 
+                  />
+                )}
+                {isStaff && (
+                  <NavItem 
+                    to="/admin/support" 
+                    icon={<Headphones size={18} />} 
+                    label="Support Desk" 
+                    emoji="🎧" 
                     onClick={closeMobile} 
                   />
                 )}
@@ -275,6 +285,15 @@ export const Sidebar = () => {
                 icon={<ShieldCheck size={18} />} 
                 label="Control Tower" 
                 emoji="🛡️" 
+                isCollapsed={isCollapsed} 
+              />
+            )}
+            {isStaff && (
+              <NavItem 
+                to="/admin/support" 
+                icon={<Headphones size={18} />} 
+                label="Support Desk" 
+                emoji="🎧" 
                 isCollapsed={isCollapsed} 
               />
             )}
