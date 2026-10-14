@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withAuthRetry, ensureFreshSession, isJwtExpiredError } from '../lib/supabase';
 import { TradeData } from '../types';
 import { toast } from 'sonner';
 
@@ -20,33 +20,39 @@ export function useOptimisticTrades(options: UseOptimisticTradesOptions = {}) {
     tradesSnapshotRef.current = trades;
   }, [trades]);
 
-  // Initial load from Supabase
+  // Initial load from Supabase with auth retry
   const loadTrades = useCallback(async () => {
     try {
       setLoading(true);
-      let targetUserId = userId;
+      await withAuthRetry(async () => {
+        let targetUserId = userId;
 
-      if (!targetUserId) {
-        const { data: { session } } = await supabase.auth.getSession();
-        targetUserId = session?.user?.id || null;
-      }
+        if (!targetUserId) {
+          targetUserId = await ensureFreshSession();
+        }
 
-      if (!targetUserId) {
-        setTrades([]);
-        return;
-      }
+        if (!targetUserId) {
+          setTrades([]);
+          return;
+        }
 
-      const { data, error } = await supabase
-        .from('trades')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .order('trade_date', { ascending: false });
+        const { data, error } = await supabase
+          .from('trades')
+          .select('*')
+          .eq('user_id', targetUserId)
+          .order('trade_date', { ascending: false });
 
-      if (error) throw error;
-      setTrades((data as TradeData[]) || []);
+        if (error) throw error;
+        setTrades((data as TradeData[]) || []);
+      });
     } catch (err: any) {
-      console.error('OptimisticTrades load error:', err);
-      toast.error('Failed to synchronize trade portfolio from cloud');
+      if (isJwtExpiredError(err)) {
+        console.warn('OptimisticTrades: Session expired, resetting state.');
+        setTrades([]);
+      } else {
+        console.error('OptimisticTrades load error:', err);
+        toast.error('Failed to synchronize trade portfolio from cloud');
+      }
     } finally {
       setLoading(false);
     }

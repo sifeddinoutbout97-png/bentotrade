@@ -439,9 +439,9 @@ export const AdminSupport: React.FC = () => {
   const inProgressCount = tickets.filter((t) => t.status === 'in_progress').length;
 
   return (
-    <div className="h-full w-full flex flex-col bg-[#050505] text-zinc-100 overflow-hidden font-sans select-none">
+    <div className="h-full w-full overflow-hidden overflow-x-hidden flex flex-col bg-black text-zinc-100 font-sans select-none">
       {/* 1. TOP HEADER & METRICS BAR */}
-      <header className="h-14 border-b border-white/[0.08] bg-zinc-950/80 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0">
+      <header className="h-14 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Link
             to="/admin"
@@ -501,31 +501,31 @@ export const AdminSupport: React.FC = () => {
       </header>
 
       {/* 2. MAIN 3-PANEL WORKSPACE */}
-      <div className="flex-1 flex min-h-0 divide-x divide-white/[0.06]">
-        {/* PANEL 1: TICKET QUEUE & FILTER (320px - 360px) */}
-        <aside className="w-80 sm:w-96 flex flex-col min-h-0 bg-zinc-950/40 shrink-0">
+      <div className="flex-1 flex min-h-0 overflow-hidden overflow-x-hidden divide-x divide-zinc-800/80">
+        {/* PANEL 1: TICKET QUEUE & FILTER (280px - 300px) */}
+        <aside className="w-[280px] lg:w-[300px] shrink-0 flex flex-col min-h-0 border-r border-zinc-800/80 bg-zinc-950/60">
           {/* Search & Filter Bar */}
-          <div className="p-3 border-b border-white/[0.06] flex flex-col gap-2.5 bg-black/20">
+          <div className="p-3 border-b border-zinc-800/80 flex flex-col gap-2.5 bg-black/20">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search subject, user, UUID..."
-                className="pl-8 bg-white/[0.02] border-white/[0.08] text-xs h-8 text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-emerald-500/30 rounded-lg"
+                className="pl-8 bg-zinc-900/60 border-zinc-800 text-xs h-8 text-zinc-200 placeholder:text-zinc-500 focus-visible:ring-emerald-500/30 rounded-lg"
               />
             </div>
 
-            {/* Status Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar text-[11px] font-mono">
+            {/* Status Tabs Segmented Control */}
+            <div className="flex items-center gap-1 p-1 bg-zinc-900/80 border border-zinc-800/80 rounded-lg overflow-x-auto no-scrollbar text-xs font-mono">
               {(['all', 'open', 'in_progress', 'resolved', 'closed'] as const).map((st) => (
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-2 py-1 rounded-md capitalize transition-all whitespace-nowrap ${
+                  className={`px-2 py-1 rounded capitalize transition-all whitespace-nowrap text-xs font-mono ${
                     statusFilter === st
-                      ? 'bg-zinc-800 text-white font-bold border border-zinc-700'
-                      : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]'
+                      ? 'bg-zinc-800 text-white font-bold shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                   }`}
                 >
                   {st.replace('_', ' ')}
@@ -561,28 +561,28 @@ export const AdminSupport: React.FC = () => {
                   <div
                     key={t.id}
                     onClick={() => setSelectedTicketId(t.id)}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 ${
+                    className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 min-w-0 ${
                       isSelected
                         ? 'bg-white/[0.05] border-emerald-500/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
                         : 'bg-white/[0.01] hover:bg-white/[0.03] border-white/[0.04]'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs font-semibold text-zinc-200 line-clamp-1">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <span className="text-xs font-semibold text-zinc-200 truncate min-w-0">
                         {t.subject}
                       </span>
-                      <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.2 rounded border ${priorityColor}`}>
+                      <span className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border shrink-0 ${priorityColor}`}>
                         {t.priority}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500">
-                      <div className="flex items-center gap-1.5">
-                        <span className="uppercase text-zinc-400">{t.category}</span>
+                    <div className="flex items-center justify-between text-[11px] font-mono text-zinc-500 min-w-0">
+                      <div className="flex items-center gap-1.5 truncate min-w-0">
+                        <span className="uppercase text-zinc-400 shrink-0">{t.category}</span>
                         <span>•</span>
-                        <span className="capitalize">{t.status.replace('_', ' ')}</span>
+                        <span className="capitalize truncate">{t.status.replace('_', ' ')}</span>
                       </div>
-                      <span>
+                      <span className="shrink-0 text-[10px]">
                         {new Date(t.updated_at || t.created_at).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -597,32 +597,39 @@ export const AdminSupport: React.FC = () => {
         </aside>
 
         {/* PANEL 2: LIVE CHAT STREAM & COMPOSER (Center, flexible) */}
-        <main className="flex-1 flex flex-col min-h-0 bg-[#050505]">
+        <main className="min-w-0 flex-1 flex flex-col h-full bg-[#050505]">
           {activeTicket ? (
             <>
               {/* Active Ticket Control Header */}
-              <div className="p-3.5 sm:p-4 border-b border-white/[0.06] bg-zinc-950/70 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-bold text-white truncate">{activeTicket.subject}</h2>
-                    <span className="text-[10px] font-mono text-zinc-500">
-                      #{activeTicket.id.slice(0, 8)}
-                    </span>
+              <div className="p-4 border-b border-zinc-800/80 bg-zinc-950/70 flex items-center justify-between gap-3 shrink-0 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h2 className="text-sm font-bold text-white truncate min-w-0">{activeTicket.subject}</h2>
+                      <span className="text-[10px] font-mono text-zinc-500 shrink-0">
+                        #{activeTicket.id.slice(0, 8)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-zinc-400 font-mono truncate min-w-0">
+                      <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] uppercase font-bold text-emerald-400 shrink-0">
+                        {activeTicket.category}
+                      </span>
+                      <span className="truncate">
+                        User: {userProfile?.full_name ? `${userProfile.full_name} (${userProfile.email || activeTicket.user_id.slice(0, 8)})` : (userProfile?.email || activeTicket.user_id.slice(0, 8))}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-[11px] text-zinc-400 font-mono">
-                    Category: <span className="uppercase text-zinc-200">{activeTicket.category}</span> | User: {userProfile?.email || activeTicket.user_id.slice(0, 8)}
-                  </span>
                 </div>
 
                 {/* Status & Priority Controls */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 shrink-0">
                   {/* Status Dropdown/Selector */}
-                  <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 text-[11px] font-mono">
+                  <div className="flex items-center gap-0.5 bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 text-xs font-mono">
                     {(['open', 'in_progress', 'resolved', 'closed'] as const).map((st) => (
                       <button
                         key={st}
                         onClick={() => handleUpdateTicketStatus(st)}
-                        className={`px-2 py-1 rounded capitalize transition-all ${
+                        className={`px-2 py-1 rounded capitalize transition-all text-xs font-mono ${
                           activeTicket.status === st
                             ? 'bg-zinc-800 text-white font-bold shadow-sm'
                             : 'text-zinc-500 hover:text-zinc-300'
@@ -637,7 +644,7 @@ export const AdminSupport: React.FC = () => {
                   <select
                     value={activeTicket.priority}
                     onChange={(e) => handleUpdateTicketPriority(e.target.value as TicketPriority)}
-                    className="h-7 px-2 text-[11px] font-mono uppercase bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 focus:outline-none focus:border-zinc-700"
+                    className="h-7 px-2 text-xs font-mono uppercase bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 focus:outline-none focus:border-zinc-700"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -648,7 +655,7 @@ export const AdminSupport: React.FC = () => {
               </div>
 
               {/* Messages Feed */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-3 min-h-0">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
                 {isLoadingMessages ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
                     <Loader2 size={24} className="animate-spin text-emerald-400" />
@@ -709,13 +716,13 @@ export const AdminSupport: React.FC = () => {
               </div>
 
               {/* Canned Quick Responses Ribbon */}
-              <div className="px-4 py-2 border-t border-white/[0.04] bg-zinc-950/40 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <div className="px-4 py-2 border-t border-zinc-800/80 bg-zinc-950/60 flex items-center gap-2 overflow-x-auto no-scrollbar">
                 <span className="text-[10px] font-mono uppercase text-zinc-500 shrink-0">Quick Canned:</span>
                 {CANNED_RESPONSES.map((resp, i) => (
                   <button
                     key={i}
                     onClick={() => setComposerText(resp)}
-                    className="px-2.5 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-zinc-400 hover:text-zinc-200 text-[11px] whitespace-nowrap truncate max-w-[240px] transition-colors text-left"
+                    className="px-2.5 py-1 rounded-lg bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs whitespace-nowrap truncate max-w-[240px] transition-colors text-left"
                     title={resp}
                   >
                     {resp}
@@ -724,7 +731,7 @@ export const AdminSupport: React.FC = () => {
               </div>
 
               {/* Message Composer */}
-              <div className="p-3.5 sm:p-4 border-t border-white/[0.06] bg-zinc-950/80 flex flex-col gap-2.5">
+              <div className="p-3.5 sm:p-4 border-t border-zinc-800/80 bg-zinc-950/80 flex flex-col gap-2.5">
                 <Textarea
                   value={composerText}
                   onChange={(e) => setComposerText(e.target.value)}
@@ -736,7 +743,7 @@ export const AdminSupport: React.FC = () => {
                   }}
                   rows={2}
                   placeholder="Type official staff response... (Enter to send, Shift+Enter for new line)"
-                  className="bg-white/[0.02] border-white/[0.08] text-xs text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-emerald-500/40 rounded-xl resize-none"
+                  className="bg-zinc-900/60 border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-emerald-500/40 rounded-xl resize-none p-3"
                 />
 
                 <div className="flex items-center justify-between gap-2">
@@ -784,8 +791,8 @@ export const AdminSupport: React.FC = () => {
           )}
         </main>
 
-        {/* PANEL 3: CUSTOMER INTELLIGENCE & TELEMETRY (300px) */}
-        <aside className="w-72 lg:w-80 hidden md:flex flex-col min-h-0 bg-zinc-950/40 shrink-0 p-4 gap-4 overflow-y-auto">
+        {/* PANEL 3: CUSTOMER INTELLIGENCE & TELEMETRY (300px - 320px) */}
+        <aside className="w-[300px] lg:w-[320px] shrink-0 border-l border-zinc-800/80 bg-zinc-950/60 hidden md:flex flex-col min-h-0 p-4 gap-4 overflow-y-auto">
           <div>
             <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-zinc-400">
               User Intelligence
@@ -796,7 +803,7 @@ export const AdminSupport: React.FC = () => {
           {activeTicket ? (
             <div className="flex flex-col gap-4">
               {/* User Profile Card */}
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-3">
+              <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/80 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">
                     {userProfile?.full_name?.[0]?.toUpperCase() || userProfile?.email?.[0]?.toUpperCase() || 'U'}
@@ -809,21 +816,21 @@ export const AdminSupport: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/[0.04] text-[11px] font-mono">
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800/80 text-xs font-mono">
                   <div className="flex flex-col">
-                    <span className="text-zinc-600 text-[10px]">ROLE</span>
-                    <span className="text-zinc-300 uppercase font-bold">{userProfile?.role || 'User'}</span>
+                    <span className="text-zinc-500 text-[10px]">ROLE</span>
+                    <span className="text-zinc-200 uppercase font-bold">{userProfile?.role || 'User'}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-zinc-600 text-[10px]">TRADES LOGGED</span>
+                    <span className="text-zinc-500 text-[10px]">TRADES LOGGED</span>
                     <span className="text-emerald-400 font-bold">{userTradeCount ?? '0'}</span>
                   </div>
                 </div>
 
                 {/* User UUID */}
-                <div className="flex flex-col gap-1 pt-2 border-t border-white/[0.04]">
-                  <span className="text-[10px] font-mono text-zinc-600">USER UUID</span>
-                  <div className="flex items-center justify-between bg-black/40 px-2 py-1.5 rounded-lg border border-white/[0.04]">
+                <div className="flex flex-col gap-1 pt-2 border-t border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500">USER UUID</span>
+                  <div className="flex items-center justify-between bg-black/60 px-2 py-1.5 rounded-lg border border-zinc-800">
                     <span className="font-mono text-[10px] text-zinc-400 truncate">
                       {activeTicket.user_id}
                     </span>
@@ -841,7 +848,7 @@ export const AdminSupport: React.FC = () => {
               </div>
 
               {/* Ghost Mode Launcher */}
-              <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/20 flex flex-col gap-2">
+              <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/30 flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-purple-400 font-mono text-xs font-bold">
                   <Ghost size={14} />
                   <span>Ghost Protocol</span>
@@ -861,9 +868,9 @@ export const AdminSupport: React.FC = () => {
               </div>
 
               {/* Ticket Meta Summary */}
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-2 text-[11px] font-mono">
-                <span className="text-[10px] text-zinc-600 uppercase font-bold">TICKET TELEMETRY</span>
-                <div className="flex justify-between py-1 border-b border-white/[0.04]">
+              <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/80 flex flex-col gap-2 text-xs font-mono">
+                <span className="text-[10px] text-zinc-500 uppercase font-bold">TICKET TELEMETRY</span>
+                <div className="flex justify-between py-1 border-b border-zinc-800/80">
                   <span className="text-zinc-500">Created:</span>
                   <span className="text-zinc-300">
                     {new Date(activeTicket.created_at).toLocaleDateString([], {
@@ -873,7 +880,7 @@ export const AdminSupport: React.FC = () => {
                     })}
                   </span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-white/[0.04]">
+                <div className="flex justify-between py-1 border-b border-zinc-800/80">
                   <span className="text-zinc-500">Last Active:</span>
                   <span className="text-zinc-300">
                     {new Date(activeTicket.updated_at || activeTicket.created_at).toLocaleTimeString([], {

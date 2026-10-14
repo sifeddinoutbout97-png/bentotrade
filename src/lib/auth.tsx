@@ -178,7 +178,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('Supabase initial session check note:', error.message || error);
         }
 
-        const initialSession = data?.session || null;
+        let initialSession = data?.session || null;
+
+        // Proactively refresh expired or near-expiry token on initialization
+        if (initialSession) {
+          const nowInSec = Math.floor(Date.now() / 1000);
+          if (initialSession.expires_at && initialSession.expires_at - nowInSec <= 15) {
+            console.log('Session token expired or close to expiry on initialization; refreshing...');
+            try {
+              const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
+              if (!refreshErr && refreshData?.session) {
+                initialSession = refreshData.session;
+              } else if (refreshErr) {
+                console.warn('Initial session refresh note:', refreshErr.message);
+                initialSession = null;
+                await supabase.auth.signOut().catch(() => {});
+              }
+            } catch (refErr) {
+              console.warn('Initial session refresh caught error:', refErr);
+            }
+          }
+        }
+
         if (isMounted) {
           setSession(initialSession);
           if (initialSession?.user) {

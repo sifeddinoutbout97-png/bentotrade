@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Trade } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { supabase, isJwtExpiredError } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { getMarketTypeFromTicker } from '@/lib/utils';
 import { 
@@ -88,8 +88,14 @@ export const TradeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       setTrades(uniqueTrades);
     } catch (err: any) {
-      console.error('Error fetching global trades:', err);
-      setError(err.message || 'Failed to fetch trades');
+      if (isJwtExpiredError(err)) {
+        console.warn('Session expired while fetching trades. State cleared.');
+        setTrades([]);
+        setError('Your session has expired. Please sign in again.');
+      } else {
+        console.error('Error fetching global trades:', err);
+        setError(err.message || 'Failed to fetch trades');
+      }
     } finally {
       setLoading(false);
     }
