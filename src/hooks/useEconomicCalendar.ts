@@ -45,6 +45,29 @@ const CURRENCY_TO_COUNTRY: Record<string, string> = {
   CNY: 'CN',
 };
 
+export const getThisWeekRange = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); // 0 is Sunday, 1 is Monday ...
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const formatYMD = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${dayStr}`;
+  };
+
+  return {
+    from: formatYMD(monday),
+    to: formatYMD(sunday)
+  };
+};
+
 export const useEconomicCalendar = () => {
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,11 +81,8 @@ export const useEconomicCalendar = () => {
     'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF'
   ]);
 
-  // Date Range (defaults to today + 7 days)
-  const [dateRange, setDateRange] = useState({
-    from: new Date().toISOString().split('T')[0],
-    to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  });
+  // Date Range (defaults to current week: Monday to Sunday)
+  const [dateRange, setDateRange] = useState(getThisWeekRange);
 
   const fetchCalendar = useCallback(async (isInitial = false) => {
     setLoading(true);
@@ -79,6 +99,7 @@ export const useEconomicCalendar = () => {
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data.economicCalendar) && data.economicCalendar.length > 0) {
+            console.log(`[useEconomicCalendar] Successfully received ${data.economicCalendar.length} live events from Finnhub`);
             fetchedEvents = data.economicCalendar.map((item: any, idx: number) => {
               // Parse time safely into ISO format
               let formattedTime = item.time || new Date().toISOString();
@@ -110,10 +131,15 @@ export const useEconomicCalendar = () => {
             }).sort((a: EconomicEvent, b: EconomicEvent) => {
               return new Date(a.time).getTime() - new Date(b.time).getTime();
             });
+          } else {
+            console.log('[useEconomicCalendar] Finnhub returned empty event list; fallback activating.');
           }
+        } else {
+          const errPayload = await response.json().catch(() => null);
+          console.warn(`[useEconomicCalendar] /api/economic-calendar returned HTTP ${response.status}:`, errPayload);
         }
       } catch (networkErr) {
-        console.warn('Finnhub proxy fetch encountered error, fallback active:', networkErr);
+        console.warn('[useEconomicCalendar] Network error connecting to /api/economic-calendar, activating institutional telemetry:', networkErr);
       }
 
       // If Finnhub returns empty or key is not provided yet, fallback to institutional telemetry

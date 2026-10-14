@@ -24,41 +24,68 @@ app.use(express.json());
  */
 app.get('/api/economic-calendar', async (req, res) => {
   const { from, to } = req.query;
-  const apiKey = process.env.FINNHUB_API_KEY || process.env.VITE_FINNHUB_API_KEY || '';
+  const isKeyDefined = Boolean(process.env.FINNHUB_API_KEY && process.env.FINNHUB_API_KEY.trim().length > 0);
+  
+  console.log(`[/api/economic-calendar] Temporal Query: from=${from}, to=${to}`);
+  console.log(`[/api/economic-calendar] process.env.FINNHUB_API_KEY is defined: ${isKeyDefined}`);
 
   if (!from || !to) {
     return res.status(400).json({ error: 'Missing required query parameters: from, to' });
   }
 
-  // If no API key configured, return clean notice with empty array so client can activate fallback
-  if (!apiKey || apiKey.trim().length === 0) {
-    return res.status(200).json({
+  if (!isKeyDefined) {
+    console.warn('[/api/economic-calendar] process.env.FINNHUB_API_KEY is missing or undefined.');
+    return res.status(500).json({
+      error: 'process.env.FINNHUB_API_KEY is not defined',
       economicCalendar: [],
-      warning: 'FINNHUB_API_KEY not configured on server. Client will utilize institutional feed.'
+      fallbackActive: true
     });
   }
 
   try {
-    const finnhubUrl = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${apiKey.trim()}`;
-    const finnhubRes = await fetch(finnhubUrl);
+    const targetUrl = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${process.env.FINNHUB_API_KEY}`;
+    console.log(`[/api/economic-calendar] Dispatching request to Finnhub: https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=***`);
+    
+    const finnhubRes = await fetch(targetUrl);
 
     if (!finnhubRes.ok) {
       const errText = await finnhubRes.text();
-      console.warn(`[Finnhub API Error] HTTP ${finnhubRes.status}:`, errText);
-      return res.status(finnhubRes.status).json({
-        error: `Finnhub returned HTTP ${finnhubRes.status}`,
-        details: errText,
-        economicCalendar: []
+      console.warn(`[/api/economic-calendar] Finnhub error response HTTP ${finnhubRes.status}:`, errText);
+      return res.status(500).json({
+        error: `Finnhub returned HTTP ${finnhubRes.status}: ${errText}`,
+        status: finnhubRes.status,
+        economicCalendar: [],
+        fallbackActive: true
       });
     }
 
     const data = await finnhubRes.json();
+    if (data.error) {
+      console.warn(`[/api/economic-calendar] Finnhub payload contains error:`, data.error);
+      return res.status(500).json({
+        error: data.error,
+        economicCalendar: [],
+        fallbackActive: true
+      });
+    }
+
+    if (!Array.isArray(data.economicCalendar) || data.economicCalendar.length === 0) {
+      console.log(`[/api/economic-calendar] Finnhub returned empty event array for ${from} to ${to}`);
+      return res.status(500).json({
+        error: 'Finnhub returned an empty economicCalendar array for range',
+        economicCalendar: [],
+        fallbackActive: true
+      });
+    }
+
+    console.log(`[/api/economic-calendar] Received ${data.economicCalendar.length} live events from Finnhub.`);
     return res.json(data);
   } catch (error: any) {
-    console.error('Server error fetching Finnhub economic calendar:', error);
+    console.error('[/api/economic-calendar] Server exception querying Finnhub:', error);
     return res.status(500).json({
-      error: error?.message || 'Internal server error while querying Finnhub',
-      economicCalendar: []
+      error: error?.message || 'Server exception querying Finnhub',
+      economicCalendar: [],
+      fallbackActive: true
     });
   }
 });

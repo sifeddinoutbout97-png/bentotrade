@@ -275,9 +275,9 @@ export const MarketPulse = () => {
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 md:h-2 md:w-2 bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]"></span>
               </span>
               <span className="truncate">
-                {dateRange.from === new Date().toISOString().split('T')[0] 
-                  ? 'Real-Time Macro Telemetry & Catalyst Engine' 
-                  : `Archive: ${new Date(dateRange.from).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
+                {dateRange.from === dateRange.to
+                  ? `Active Focus: ${new Date(dateRange.from + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`
+                  : `Live Macro Telemetry: ${new Date(dateRange.from + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${new Date(dateRange.to + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
               </span>
             </p>
           </div>
@@ -746,6 +746,7 @@ const SidebarContent = ({
           <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest pl-1">Temporal_Control</h4>
           <TemporalControl 
             selectedDate={dateRange.from}
+            toDate={dateRange.to}
             onDateChange={(from, to) => setDateRange({ from, to })}
           />
         </div>

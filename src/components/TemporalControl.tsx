@@ -5,10 +5,11 @@ import { cn } from '@/lib/utils';
 
 interface DateControllerProps {
   selectedDate: string;
+  toDate?: string;
   onDateChange: (from: string, to: string) => void;
 }
 
-export const TemporalControl: React.FC<DateControllerProps> = ({ selectedDate, onDateChange }) => {
+export const TemporalControl: React.FC<DateControllerProps> = ({ selectedDate, toDate, onDateChange }) => {
   const [currentMonth, setCurrentMonth] = React.useState(new Date(selectedDate));
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   
@@ -17,6 +18,33 @@ export const TemporalControl: React.FC<DateControllerProps> = ({ selectedDate, o
 
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const formatYMD = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = formatYMD(today);
+  const tomorrowStr = formatYMD(tomorrow);
+
+  const getThisWeekRange = React.useCallback(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay(); // 0 is Sunday, 1 is Monday ...
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMonday);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return {
+      from: formatYMD(monday),
+      to: formatYMD(sunday)
+    };
+  }, []);
+
+  const weekRange = getThisWeekRange();
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -28,12 +56,16 @@ export const TemporalControl: React.FC<DateControllerProps> = ({ selectedDate, o
 
   const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
 
-  const setRange = (from: Date, days: number = 0) => {
-    const f = new Date(from);
-    f.setHours(0, 0, 0, 0);
-    const t = new Date(f);
-    t.setDate(f.getDate() + days);
-    onDateChange(f.toISOString().split('T')[0], t.toISOString().split('T')[0]);
+  const handleToday = () => {
+    onDateChange(todayStr, todayStr);
+  };
+
+  const handleTomorrow = () => {
+    onDateChange(tomorrowStr, tomorrowStr);
+  };
+
+  const handleThisWeek = () => {
+    onDateChange(weekRange.from, weekRange.to);
   };
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -49,36 +81,37 @@ export const TemporalControl: React.FC<DateControllerProps> = ({ selectedDate, o
 
   const isSelected = (day: number) => {
     const d = new Date(year, currentMonth.getMonth(), day);
-    return d.toISOString().split('T')[0] === selectedDate;
+    return formatYMD(d) === selectedDate;
   };
 
   const activeMode = React.useMemo(() => {
-    if (selectedDate === today.toISOString().split('T')[0]) return 'today';
-    if (selectedDate === tomorrow.toISOString().split('T')[0]) return 'tomorrow';
+    if (selectedDate === todayStr && (!toDate || toDate === todayStr)) return 'today';
+    if (selectedDate === tomorrowStr && (!toDate || toDate === tomorrowStr)) return 'tomorrow';
+    if (selectedDate === weekRange.from && toDate === weekRange.to) return 'week';
     return 'custom';
-  }, [selectedDate]);
+  }, [selectedDate, toDate, todayStr, tomorrowStr, weekRange]);
 
   return (
     <div className="space-y-4">
       {/* Segmented Control Quick Actions */}
       <div className="p-1 flex bg-zinc-100 dark:bg-white/5 rounded-xl border border-zinc-950/10 dark:border-white/10">
         {[
-          { id: 'today', label: 'Today', onClick: () => setRange(today, 0) },
-          { id: 'tomorrow', label: 'Tomorrow', onClick: () => setRange(tomorrow, 0) },
-          { id: 'week', label: 'This Week', onClick: () => setRange(today, 7) }
+          { id: 'today', label: 'Today', onClick: handleToday },
+          { id: 'tomorrow', label: 'Tomorrow', onClick: handleTomorrow },
+          { id: 'week', label: 'This Week', onClick: handleThisWeek }
         ].map((btn) => (
           <button
             key={btn.id}
             onClick={btn.onClick}
             className={cn(
               "flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all rounded-lg relative",
-              activeMode === btn.id || (btn.id === 'week' && activeMode === 'custom')
+              activeMode === btn.id
                 ? "text-zinc-950 dark:text-white"
                 : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             )}
           >
             <span className="relative z-10">{btn.label}</span>
-            {(activeMode === btn.id || (btn.id === 'week' && activeMode === 'custom')) && (
+            {activeMode === btn.id && (
               <motion.div
                 layoutId="active-tab"
                 className="absolute inset-0 bg-white dark:bg-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-none rounded-lg"
@@ -148,7 +181,11 @@ export const TemporalControl: React.FC<DateControllerProps> = ({ selectedDate, o
                 {days.map(day => (
                   <button
                     key={day}
-                    onClick={() => setRange(new Date(year, currentMonth.getMonth(), day), 0)}
+                    onClick={() => {
+                      const d = new Date(year, currentMonth.getMonth(), day);
+                      const ymd = formatYMD(d);
+                      onDateChange(ymd, ymd);
+                    }}
                     className={cn(
                       "relative group w-8 h-8 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center",
                       isSelected(day) 
