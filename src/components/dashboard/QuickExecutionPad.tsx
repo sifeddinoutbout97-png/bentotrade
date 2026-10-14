@@ -56,6 +56,21 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
     estimatedPnl = diff * multiplier * qtyNum;
   }
 
+  // Handle Bias toggle with automatic entry/exit price swap
+  const handleDirectionToggle = (newDirection: 'long' | 'short') => {
+    if (newDirection === direction) return;
+
+    setDirection(newDirection);
+
+    // Check if there are current values in entryPrice and exitPrice state variables
+    if (entryPrice && exitPrice) {
+      const currentEntry = entryPrice;
+      const currentExit = exitPrice;
+      setEntryPrice(currentExit);
+      setExitPrice(currentEntry);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -152,7 +167,7 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
               <div className="grid grid-cols-2 gap-1 bg-black/40 p-0.5 rounded-xl border border-white/[0.03]">
                 <button
                   type="button"
-                  onClick={() => setDirection('long')}
+                  onClick={() => handleDirectionToggle('long')}
                   className={cn(
                     "py-1 text-[10px] font-mono font-bold rounded-lg transition-all",
                     direction === 'long'
@@ -164,7 +179,7 @@ export const QuickExecutionPad: React.FC<QuickExecutionPadProps> = ({ className,
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDirection('short')}
+                  onClick={() => handleDirectionToggle('short')}
                   className={cn(
                     "py-1 text-[10px] font-mono font-bold rounded-lg transition-all",
                     direction === 'short'
