@@ -309,29 +309,29 @@ export const MarketPulse = () => {
 
         {/* Main Content */}
         <div className="space-y-6 md:space-y-8 flex-1 overflow-y-visible">
-          <ShadcnCard className="rounded-[2rem] md:rounded-[2.5rem] border-zinc-950/5 dark:border-white/5 bg-white/70 dark:bg-zinc-900/50 shadow-sm dark:shadow-2xl backdrop-blur-[20px] relative overflow-hidden">
+          <ShadcnCard className="rounded-md border border-zinc-800/80 bg-zinc-950/50 shadow-none relative overflow-hidden">
             {/* Live Pulse Indicator - Desktop only */}
-            <div className="hidden md:flex absolute top-6 right-8 items-center gap-2 z-10">
+            <div className="hidden md:flex absolute top-4 right-6 items-center gap-2 z-10">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">v5.0_Pro_Feed</span>
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">v5.0_Pro_Feed</span>
             </div>
 
             <div className="flex flex-col min-h-[500px] lg:min-h-screen overflow-x-hidden">
               {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-hidden">
+              <div className="hidden lg:block overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
                 <table className="w-full text-left table-fixed border-collapse">
-                  <thead className="text-[10px] uppercase bg-zinc-50/80 dark:bg-zinc-900/80 text-zinc-500 font-black border-b border-zinc-950/5 dark:border-white/5 tracking-[0.2em] sticky top-0 z-20 backdrop-blur-md">
+                  <thead className="text-[10px] uppercase bg-zinc-900/90 text-zinc-500 font-mono font-bold border-b border-zinc-800/80 tracking-wider sticky top-0 z-20 backdrop-blur-md">
                     <tr>
-                      <th className="px-4 py-5 w-[14%]">Time / Status</th>
-                      <th className="px-4 py-5 w-[8%] text-center">Impact</th>
-                      <th className="px-4 py-5 w-[9%]">Country</th>
-                      <th className="px-4 py-5 w-[33%]">Event_Identifier</th>
-                      <th className="px-4 py-5 w-[12%] text-right">Actual</th>
-                      <th className="px-4 py-5 w-[12%] text-right">Forecast</th>
-                      <th className="px-4 py-5 w-[12%] text-right">Prev</th>
+                      <th className="px-3 py-2.5 w-[14%]">TIME / STATUS</th>
+                      <th className="px-3 py-2.5 w-[8%] text-center">IMPACT</th>
+                      <th className="px-3 py-2.5 w-[8%]">COUNTRY</th>
+                      <th className="px-3 py-2.5 w-[34%]">EVENT IDENTIFIER</th>
+                      <th className="px-3 py-2.5 w-[12%] text-right text-xs font-mono uppercase tracking-wider text-zinc-500">ACTUAL</th>
+                      <th className="px-3 py-2.5 w-[12%] text-right text-xs font-mono uppercase tracking-wider text-zinc-500">FORECAST</th>
+                      <th className="px-3 py-2.5 w-[12%] text-right text-xs font-mono uppercase tracking-wider text-zinc-500">PREV</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y border-zinc-950/5 dark:divide-white/5">
@@ -357,54 +357,54 @@ export const MarketPulse = () => {
                               initial={{ opacity: 0, y: 8 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, scale: 0.98 }}
-                              transition={{ delay: idx * 0.02, duration: 0.3 }}
+                              transition={{ delay: idx * 0.015, duration: 0.2 }}
                               className={cn(
-                                "transition-all group relative border-b border-zinc-950/5 dark:border-white/5",
+                                "transition-colors group relative border-b border-zinc-800/60",
                                 // Passed events styling (dimmed, visually receded)
                                 isPassed && "opacity-45 hover:opacity-75 bg-transparent",
                                 // Upcoming events (full brightness)
                                 isUpcoming && "opacity-100",
                                 // Next Active Catalyst (subtle glowing left border & vibrant accent)
                                 isNextCatalyst 
-                                  ? "border-l-4 border-l-primary bg-primary/[0.04] dark:bg-primary/[0.08] shadow-[inset_0_0_24px_rgba(59,130,246,0.07)] ring-1 ring-primary/20" 
+                                  ? "border-l-2 border-l-emerald-500 bg-emerald-950/20" 
                                   : isHighImpact && !isPassed 
-                                    ? "hover:bg-red-500/5 dark:hover:bg-red-500/5 bg-gradient-to-r hover:from-red-500/5 hover:to-transparent"
-                                    : "hover:bg-zinc-50/50 dark:hover:bg-white/5"
+                                    ? "hover:bg-red-950/20"
+                                    : "hover:bg-zinc-900/40"
                               )}
                             >
                               {/* Time & Real-Time Status Column */}
-                              <td className="px-4 py-4 whitespace-nowrap">
-                                <div className="flex flex-col gap-1">
-                                  <div className="flex items-center gap-2">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
+                                <div className="flex flex-col gap-0.5">
+                                  <div className="flex items-center gap-1.5">
                                     <span className={cn(
                                       "text-xs font-mono font-bold transition-colors",
                                       isPassed 
-                                        ? "text-zinc-400 dark:text-zinc-500 line-through decoration-zinc-400/40" 
+                                        ? "text-zinc-500 line-through decoration-zinc-600" 
                                         : isNextCatalyst 
-                                          ? "text-primary font-black drop-shadow-sm text-[13px]" 
-                                          : "text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-950 dark:group-hover:text-white"
+                                          ? "text-emerald-400 font-bold" 
+                                          : "text-zinc-200 group-hover:text-white"
                                     )}>
                                       {new Date(event.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
                                     </span>
                                     {isNextCatalyst && (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-[8px] font-black uppercase tracking-wider animate-pulse">
-                                        <span className="w-1 h-1 rounded-full bg-primary animate-ping" />
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-sm bg-emerald-950/50 border border-emerald-800/60 text-emerald-400 text-[8px] font-mono font-bold uppercase tracking-wider animate-pulse">
+                                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-ping" />
                                         Next
                                       </span>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center gap-1">
                                     {isPassed ? (
-                                      <span className="px-1.5 py-0.2 rounded text-[8px] font-bold uppercase tracking-wider bg-zinc-200/50 dark:bg-zinc-800/60 text-zinc-400 dark:text-zinc-500">
+                                      <span className="text-[8px] font-mono uppercase tracking-wider text-zinc-600">
                                         Passed
                                       </span>
                                     ) : isNextCatalyst ? (
-                                      <span className="text-[8px] font-black uppercase tracking-widest text-primary flex items-center gap-1">
+                                      <span className="text-[8px] font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-1">
                                         <span>Active</span>
                                         <span>• {countdownLabel}</span>
                                       </span>
                                     ) : (
-                                      <span className="px-1.5 py-0.2 rounded text-[8px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                      <span className="text-[8px] font-mono uppercase tracking-wider text-zinc-500">
                                         Upcoming
                                       </span>
                                     )}
@@ -413,45 +413,45 @@ export const MarketPulse = () => {
                               </td>
 
                               {/* Impact Dot Column */}
-                              <td className="px-4 py-4 text-center">
+                              <td className="px-3 py-2.5 text-center">
                                 <div className="flex justify-center">
                                   <ImpactIcon impact={event.impact} isPassed={isPassed} />
                                 </div>
                               </td>
 
                               {/* Country Flag/Label */}
-                              <td className="px-4 py-4">
+                              <td className="px-3 py-2.5">
                                 <span className={cn(
-                                  "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all",
+                                  "px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-bold uppercase tracking-wider border",
                                   isPassed 
-                                    ? "bg-zinc-100/50 dark:bg-zinc-800/40 text-zinc-400 dark:text-zinc-500 border-zinc-200/40 dark:border-white/5" 
-                                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border-zinc-950/5 dark:border-white/5"
+                                    ? "bg-zinc-900/60 text-zinc-500 border-zinc-800" 
+                                    : "bg-zinc-900 text-zinc-300 border-zinc-800"
                                 )}>
                                   {event.country}
                                 </span>
                               </td>
 
                               {/* Event Name & Identification */}
-                              <td className="px-4 py-4">
+                              <td className="px-3 py-2.5">
                                 <p className={cn(
-                                  "text-[13px] tracking-tight leading-tight transition-all break-words",
+                                  "text-xs font-mono tracking-tight leading-tight transition-colors truncate",
                                   isPassed 
-                                    ? "text-zinc-400 dark:text-zinc-500 font-medium" 
+                                    ? "text-zinc-500" 
                                     : isNextCatalyst 
-                                      ? "text-zinc-950 dark:text-white font-black group-hover:text-primary" 
+                                      ? "text-emerald-400 font-bold" 
                                       : isHighImpact 
-                                        ? "text-rose-500 font-black drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]" 
-                                        : "text-zinc-950 dark:text-white font-black group-hover:text-primary"
+                                        ? "text-rose-400 font-bold" 
+                                        : "text-zinc-200 group-hover:text-white"
                                 )}>
                                   {event.event}
                                 </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-wider">
                                     ID: {event.calendar_id?.substring(0, 8) || 'SYSTEM_GEN'}
                                   </span>
                                   {isNextCatalyst && (
-                                    <span className="text-[8px] font-black text-primary uppercase tracking-widest bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20">
-                                      ⚡ ACTIVE CATALYST
+                                    <span className="text-[8px] font-mono text-emerald-400 uppercase tracking-wider">
+                                      ⚡ CATALYST
                                     </span>
                                   )}
                                 </div>
@@ -459,7 +459,7 @@ export const MarketPulse = () => {
 
                               {/* Actual Value */}
                               <td className={cn(
-                                "px-4 py-4 text-right text-sm font-black tabular-nums",
+                                "px-3 py-2.5 text-right text-xs font-mono font-bold tabular-nums",
                                 valueColor(event.actual, event.estimate, event.unit, isPassed)
                               )}>
                                 {event.actual !== null ? `${event.actual.toLocaleString()}${event.unit || ''}` : '--'}
@@ -467,16 +467,16 @@ export const MarketPulse = () => {
 
                               {/* Forecast Value */}
                               <td className={cn(
-                                "px-4 py-4 text-right text-sm font-black tabular-nums",
-                                isPassed ? "text-zinc-400 dark:text-zinc-600" : "text-zinc-500 dark:text-zinc-400"
+                                "px-3 py-2.5 text-right text-xs font-mono font-bold tabular-nums",
+                                isPassed ? "text-zinc-600" : "text-zinc-400"
                               )}>
                                 {event.estimate !== null ? `${event.estimate.toLocaleString()}${event.unit || ''}` : '--'}
                               </td>
 
                               {/* Previous Value */}
                               <td className={cn(
-                                "px-4 py-4 text-right text-sm font-black tabular-nums",
-                                isPassed ? "text-zinc-400 dark:text-zinc-700" : "text-zinc-400 dark:text-zinc-600"
+                                "px-3 py-2.5 text-right text-xs font-mono font-bold tabular-nums",
+                                isPassed ? "text-zinc-700" : "text-zinc-500"
                               )}>
                                 {event.prev !== null ? `${event.prev.toLocaleString()}${event.unit || ''}` : '--'}
                               </td>
@@ -651,9 +651,9 @@ const SidebarContent = ({
   gmtDisplay 
 }: any) => (
   <>
-    <ShadcnCard className="rounded-[2rem] border-zinc-950/5 dark:border-white/5 bg-white/70 dark:bg-zinc-900/50 shadow-sm dark:shadow-2xl backdrop-blur-[20px] overflow-hidden">
-      <ShadcnCardHeader className="border-b border-zinc-950/5 dark:border-white/5 bg-zinc-50/20 dark:bg-white/5 p-5">
-        <ShadcnCardTitle className="text-[10px] font-black flex items-center gap-2 uppercase tracking-[0.2em] text-zinc-400">
+    <ShadcnCard className="rounded-md border border-zinc-800/80 bg-zinc-950/50 shadow-none overflow-hidden">
+      <ShadcnCardHeader className="border-b border-zinc-800/80 bg-zinc-900/40 p-4">
+        <ShadcnCardTitle className="text-xs font-mono font-bold flex items-center gap-2 uppercase tracking-wider text-zinc-300">
           <Filter className="w-3 h-3 text-primary" />
           Settings_Tray
         </ShadcnCardTitle>

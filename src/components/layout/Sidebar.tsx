@@ -6,23 +6,23 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
-  Home, 
-  FileText, 
-  BarChart3, 
+  LayoutDashboard, 
+  BookOpenText, 
+  History, 
+  LineChart, 
+  Activity, 
   Bot, 
+  ShieldAlert, 
+  LifeBuoy, 
   Settings, 
   ChevronLeft, 
   ChevronRight,
   LogOut,
   MoreVertical,
-  ClipboardList,
-  ShieldCheck,
   Sun,
   Moon,
-  Zap,
   Menu,
-  X,
-  Headphones
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -40,30 +40,39 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface NavItemProps {
   to: string;
-  icon: React.ReactNode;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
   label: string;
   isCollapsed?: boolean;
-  emoji?: string;
   onClick?: () => void;
 }
 
-const NavItem = ({ to, icon, label, isCollapsed = false, emoji, onClick }: NavItemProps) => (
+const NavItem = ({ to, icon: Icon, label, isCollapsed = false, onClick }: NavItemProps) => (
   <NavLink
     to={to}
     onClick={onClick}
+    title={isCollapsed ? label : undefined}
     className={({ isActive }) =>
       cn(
-        "flex items-center gap-3 px-3.5 py-2.5 mx-2 rounded-xl transition-all text-sm font-medium",
+        "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors group relative",
+        isCollapsed ? "justify-center px-0 w-10 mx-auto" : "w-full",
         isActive 
-          ? "bg-primary text-primary-foreground shadow-sm font-bold" 
-          : "text-zinc-500 dark:text-muted-foreground hover:bg-zinc-100 dark:hover:bg-muted hover:text-zinc-950 dark:hover:text-foreground"
+          ? "bg-zinc-800/80 text-zinc-50 border-l-2 border-emerald-500 rounded-l-none" 
+          : "text-zinc-400 hover:text-zinc-50 hover:bg-zinc-800/50"
       )
     }
   >
-    <div className="flex items-center justify-center w-5 h-5 shrink-0 opacity-85">
-      {emoji ? <span className="text-base">{emoji}</span> : icon}
-    </div>
-    {!isCollapsed && <span className="truncate">{label}</span>}
+    {({ isActive }) => (
+      <>
+        <Icon 
+          className={cn(
+            "w-4 h-4 shrink-0 transition-colors", 
+            isActive ? "text-emerald-400" : "text-zinc-400 group-hover:text-zinc-200"
+          )} 
+          size={16} 
+        />
+        {!isCollapsed && <span className="truncate">{label}</span>}
+      </>
+    )}
   </NavLink>
 );
 
@@ -84,23 +93,26 @@ export const Sidebar = () => {
 
   const closeMobile = () => setIsMobileOpen(false);
 
-  // Mobile Bottom Navigation items
+  // Mobile Bottom Navigation items with standardized monochromatic icons
   const bottomNavItems = [
-    { to: '/', icon: Home, label: 'Dashboard', emoji: '🏠' },
-    { to: '/journal', icon: FileText, label: 'Journal', emoji: '📝' },
-    { to: '/journal-history', icon: ClipboardList, label: 'History', emoji: '📋' },
-    { to: '/market-pulse', icon: Zap, label: 'Pulse', emoji: '⚡' },
-    { to: '/ai-insights', icon: Bot, label: 'Insights', emoji: '🤖' },
+    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/journal', icon: BookOpenText, label: 'Journal' },
+    { to: '/journal-history', icon: History, label: 'History' },
+    { to: '/market-pulse', icon: Activity, label: 'Pulse' },
+    { to: '/ai-insights', icon: Bot, label: 'Insights' },
   ];
 
   return (
     <>
       {/* 1. MOBILE TOP HEADER BAR (Mobile screens only) */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-white/85 dark:bg-[#090d16]/90 backdrop-blur-xl border-b border-zinc-200/80 dark:border-zinc-800 px-4 flex items-center justify-between">
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800/80 px-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <BTLogo size="sm" />
-          <span className="font-black text-lg tracking-tight text-zinc-950 dark:text-white">
-            BentoTrade <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 uppercase tracking-widest font-mono">v5 Pro</span>
+          <span className="font-bold text-base tracking-tight text-white flex items-center gap-2">
+            BentoTrade 
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-widest font-mono">
+              v5 Pro
+            </span>
           </span>
         </div>
 
@@ -109,20 +121,20 @@ export const Sidebar = () => {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="h-9 w-9 rounded-xl text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="h-8 w-8 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             title="Toggle theme"
           >
-            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className="h-9 w-9 rounded-xl text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="h-8 w-8 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             aria-label="Toggle navigation menu"
           >
-            {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
+            {isMobileOpen ? <X size={18} /> : <Menu size={18} />}
           </Button>
         </div>
       </header>
@@ -132,16 +144,16 @@ export const Sidebar = () => {
         <div className="md:hidden fixed inset-0 z-50 flex">
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
             onClick={closeMobile}
           />
 
           {/* Drawer content */}
-          <div className="relative w-[280px] max-w-[85vw] h-full bg-white dark:bg-[#090d16] border-r border-zinc-200 dark:border-zinc-800 flex flex-col z-10 shadow-2xl animate-in slide-in-from-left duration-300">
-            <div className="p-4 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800">
+          <div className="relative w-[280px] max-w-[85vw] h-full bg-zinc-950 border-r border-zinc-800/80 flex flex-col z-10 shadow-2xl animate-in slide-in-from-left duration-300">
+            <div className="p-4 flex items-center justify-between border-b border-zinc-800/80">
               <div className="flex items-center gap-2.5">
                 <BTLogo size="sm" />
-                <span className="font-black text-lg text-zinc-950 dark:text-white tracking-tight">
+                <span className="font-bold text-base text-white tracking-tight">
                   BentoTrade
                 </span>
               </div>
@@ -149,61 +161,80 @@ export const Sidebar = () => {
                 variant="ghost"
                 size="icon"
                 onClick={closeMobile}
-                className="h-8 w-8 rounded-lg text-zinc-500 hover:text-zinc-950 dark:hover:text-white"
+                className="h-8 w-8 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800/50"
               >
-                <X size={18} />
+                <X size={16} />
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 py-3 px-2">
-              <div className="space-y-1">
-                <NavItem to="/" icon={<Home size={18} />} label="Dashboard" emoji="🏠" onClick={closeMobile} />
-                <NavItem to="/journal" icon={<FileText size={18} />} label="Trade Journal" emoji="📝" onClick={closeMobile} />
-                <NavItem to="/journal-history" icon={<ClipboardList size={18} />} label="Journal History" emoji="📋" onClick={closeMobile} />
-                <NavItem to="/analytics" icon={<BarChart3 size={18} />} label="Analytics" emoji="📈" onClick={closeMobile} />
-                <NavItem to="/market-pulse" icon={<Zap size={18} />} label="MarketPulse Desk" emoji="⚡" onClick={closeMobile} />
-                <NavItem to="/ai-insights" icon={<Bot size={18} />} label="AI Insights" emoji="🤖" onClick={closeMobile} />
-                {isAdmin && (
-                  <NavItem 
-                    to="/admin" 
-                    icon={<ShieldCheck size={18} />} 
-                    label="Control Tower" 
-                    emoji="🛡️" 
-                    onClick={closeMobile} 
-                  />
-                )}
-                {isStaff && (
-                  <NavItem 
-                    to="/admin/support" 
-                    icon={<Headphones size={18} />} 
-                    label="Support Desk" 
-                    emoji="🎧" 
-                    onClick={closeMobile} 
-                  />
-                )}
-              </div>
-
-              <div className="mt-6 px-3 py-2 border-t border-zinc-200 dark:border-zinc-800">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2">System</span>
-                <div className="mt-2 space-y-1">
-                  <NavItem to="/settings" icon={<Settings size={18} />} label="Account & Keys" emoji="⚙️" onClick={closeMobile} />
+            <ScrollArea className="flex-1 py-4 px-2">
+              <nav className="space-y-6">
+                {/* MAIN */}
+                <div>
+                  <h3 className="text-xs font-semibold text-zinc-500 tracking-wider mb-2 px-3 uppercase font-mono">
+                    Main
+                  </h3>
+                  <div className="space-y-0.5">
+                    <NavItem to="/" icon={LayoutDashboard} label="Dashboard" onClick={closeMobile} />
+                    <NavItem to="/journal" icon={BookOpenText} label="Trade Journal" onClick={closeMobile} />
+                    <NavItem to="/journal-history" icon={History} label="Journal History" onClick={closeMobile} />
+                  </div>
                 </div>
-              </div>
+
+                {/* INTELLIGENCE */}
+                <div>
+                  <h3 className="text-xs font-semibold text-zinc-500 tracking-wider mb-2 px-3 uppercase font-mono">
+                    Intelligence
+                  </h3>
+                  <div className="space-y-0.5">
+                    <NavItem to="/analytics" icon={LineChart} label="Analytics" onClick={closeMobile} />
+                    <NavItem to="/market-pulse" icon={Activity} label="MarketPulse" onClick={closeMobile} />
+                    <NavItem to="/ai-insights" icon={Bot} label="AI Insights" onClick={closeMobile} />
+                  </div>
+                </div>
+
+                {/* ADMIN (Only show if staff or admin) */}
+                {(isAdmin || isStaff) && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-zinc-500 tracking-wider mb-2 px-3 uppercase font-mono">
+                      Admin
+                    </h3>
+                    <div className="space-y-0.5">
+                      {isAdmin && (
+                        <NavItem to="/admin" icon={ShieldAlert} label="Control Tower" onClick={closeMobile} />
+                      )}
+                      {isStaff && (
+                        <NavItem to="/admin/support" icon={LifeBuoy} label="Support Desk" onClick={closeMobile} />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* SYSTEM */}
+                <div>
+                  <h3 className="text-xs font-semibold text-zinc-500 tracking-wider mb-2 px-3 uppercase font-mono">
+                    System
+                  </h3>
+                  <div className="space-y-0.5">
+                    <NavItem to="/settings" icon={Settings} label="Account" onClick={closeMobile} />
+                  </div>
+                </div>
+              </nav>
             </ScrollArea>
 
-            {/* Mobile Footer with User & Signout */}
-            <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
+            {/* Mobile Footer with User Profile */}
+            <div className="p-3 border-t border-zinc-800/80 bg-zinc-950 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <Avatar className="h-8 w-8 border border-zinc-200 dark:border-zinc-800">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-black">
+                <Avatar className="h-8 w-8 border border-zinc-800 shrink-0">
+                  <AvatarFallback className="bg-zinc-800 text-zinc-200 text-xs font-bold font-mono">
                     {userInitial}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col truncate text-xs">
-                  <span className="font-bold text-zinc-950 dark:text-white truncate">
-                    {user?.displayName || user?.email?.split('@')[0]}
+                  <span className="font-semibold text-zinc-200 truncate">
+                    {user?.displayName || user?.email?.split('@')[0] || 'Trader'}
                   </span>
-                  <span className="text-zinc-500 text-[10px] truncate">{user?.email}</span>
+                  <span className="text-zinc-500 text-[10px] font-mono truncate">{user?.email}</span>
                 </div>
               </div>
 
@@ -214,10 +245,10 @@ export const Sidebar = () => {
                   closeMobile();
                   signOut();
                 }}
-                className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg shrink-0"
-                title="Logout"
+                className="h-8 w-8 text-zinc-400 hover:text-rose-400 hover:bg-rose-950/20 rounded-md shrink-0"
+                title="Sign Out"
               >
-                <LogOut size={16} />
+                <LogOut size={15} />
               </Button>
             </div>
           </div>
@@ -225,24 +256,25 @@ export const Sidebar = () => {
       )}
 
       {/* 3. MOBILE BOTTOM NAVIGATION BAR */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-white/95 dark:bg-[#090d16]/95 backdrop-blur-xl border-t border-zinc-200/80 dark:border-zinc-800 px-2 flex items-center justify-around shadow-2xl">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800/80 px-2 flex items-center justify-around shadow-2xl">
         {bottomNavItems.map((item) => {
           const isActive = location.pathname === item.to;
+          const Icon = item.icon;
           return (
             <NavLink
               key={item.to}
               to={item.to}
               className={cn(
-                "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all text-[10px] font-medium min-w-[56px]",
+                "flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium min-w-[56px] gap-1",
                 isActive 
-                  ? "text-emerald-500 font-bold dark:text-emerald-400" 
-                  : "text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                  ? "text-emerald-400 font-semibold" 
+                  : "text-zinc-400 hover:text-zinc-200"
               )}
             >
-              <span className="text-base leading-none mb-1">{item.emoji}</span>
-              <span className="tracking-tight">{item.label}</span>
+              <Icon size={16} className={isActive ? "text-emerald-400" : "text-zinc-400"} />
+              <span className="tracking-tight text-[10px]">{item.label}</span>
               {isActive && (
-                <span className="w-1 h-1 rounded-full bg-emerald-500 mt-0.5" />
+                <span className="w-1 h-1 rounded-full bg-emerald-500 -mt-0.5" />
               )}
             </NavLink>
           );
@@ -252,109 +284,140 @@ export const Sidebar = () => {
       {/* 4. DESKTOP PERSISTENT SIDEBAR */}
       <aside
         className={cn(
-          "hidden md:flex h-screen bg-white/80 dark:bg-card border-r border-zinc-200/50 dark:border-border flex-col transition-all duration-300 backdrop-blur-xl shrink-0",
-          isCollapsed ? "w-20" : "w-64"
+          "hidden md:flex h-screen bg-zinc-950 border-r border-zinc-800/80 flex-col transition-all duration-300 shrink-0 select-none",
+          isCollapsed ? "w-16" : "w-64"
         )}
       >
-        <div className="p-6 flex items-center justify-between font-black text-zinc-950 dark:text-foreground">
-          <div className="flex items-center gap-3 overflow-hidden">
+        {/* Brand / Logo Header */}
+        <div className="h-14 px-4 flex items-center justify-between border-b border-zinc-800/80 shrink-0">
+          <div className="flex items-center gap-2.5 overflow-hidden">
             <BTLogo size="sm" />
-            {!isCollapsed && <span className="truncate tracking-tighter text-xl">BentoTrade</span>}
+            {!isCollapsed && (
+              <div className="flex items-center gap-2 truncate">
+                <span className="font-bold text-sm tracking-tight text-zinc-100">BentoTrade</span>
+                <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">
+                  v5 Pro
+                </span>
+              </div>
+            )}
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="h-8 w-8 text-zinc-400 dark:text-muted-foreground hover:bg-zinc-100 dark:hover:bg-muted rounded-lg"
+            className="h-7 w-7 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 rounded-md"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 mt-4 px-2">
-          <div className="space-y-1">
-            <NavItem to="/" icon={<Home size={18} />} label="Dashboard" emoji="🏠" isCollapsed={isCollapsed} />
-            <NavItem to="/journal" icon={<FileText size={18} />} label="Trade Journal" emoji="📝" isCollapsed={isCollapsed} />
-            <NavItem to="/journal-history" icon={<ClipboardList size={18} />} label="Journal History" emoji="📋" isCollapsed={isCollapsed} />
-            <NavItem to="/analytics" icon={<BarChart3 size={18} />} label="Analytics" emoji="📈" isCollapsed={isCollapsed} />
-            <NavItem to="/market-pulse" icon={<Zap size={18} />} label="MarketPulse" emoji="⚡" isCollapsed={isCollapsed} />
-            <NavItem to="/ai-insights" icon={<Bot size={18} />} label="AI Insights" emoji="🤖" isCollapsed={isCollapsed} />
-            {isAdmin && (
-              <NavItem 
-                to="/admin" 
-                icon={<ShieldCheck size={18} />} 
-                label="Control Tower" 
-                emoji="🛡️" 
-                isCollapsed={isCollapsed} 
-              />
-            )}
-            {isStaff && (
-              <NavItem 
-                to="/admin/support" 
-                icon={<Headphones size={18} />} 
-                label="Support Desk" 
-                emoji="🎧" 
-                isCollapsed={isCollapsed} 
-              />
-            )}
-          </div>
-
-          <div className="mt-10 px-4 py-2">
-            {!isCollapsed && <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2">System</span>}
-            <div className="mt-3 space-y-1">
-              <NavItem to="/settings" icon={<Settings size={18} />} label="Account" emoji="⚙️" isCollapsed={isCollapsed} />
+        {/* Navigation Groups */}
+        <ScrollArea className="flex-1 py-4 px-2">
+          <nav className="space-y-6">
+            {/* MAIN */}
+            <div>
+              {!isCollapsed && (
+                <h3 className="text-xs font-semibold text-zinc-500 tracking-wider mb-2 px-3 uppercase font-mono">
+                  Main
+                </h3>
+              )}
+              <div className="space-y-0.5">
+                <NavItem to="/" icon={LayoutDashboard} label="Dashboard" isCollapsed={isCollapsed} />
+                <NavItem to="/journal" icon={BookOpenText} label="Trade Journal" isCollapsed={isCollapsed} />
+                <NavItem to="/journal-history" icon={History} label="Journal History" isCollapsed={isCollapsed} />
+              </div>
             </div>
-          </div>
+
+            {/* INTELLIGENCE */}
+            <div>
+              {!isCollapsed && (
+                <h3 className="text-xs font-semibold text-zinc-500 tracking-wider mb-2 px-3 uppercase font-mono">
+                  Intelligence
+                </h3>
+              )}
+              <div className="space-y-0.5">
+                <NavItem to="/analytics" icon={LineChart} label="Analytics" isCollapsed={isCollapsed} />
+                <NavItem to="/market-pulse" icon={Activity} label="MarketPulse" isCollapsed={isCollapsed} />
+                <NavItem to="/ai-insights" icon={Bot} label="AI Insights" isCollapsed={isCollapsed} />
+              </div>
+            </div>
+
+            {/* ADMIN (Only show if staff or admin) */}
+            {(isAdmin || isStaff) && (
+              <div>
+                {!isCollapsed && (
+                  <h3 className="text-xs font-semibold text-zinc-500 tracking-wider mb-2 px-3 uppercase font-mono">
+                    Admin
+                  </h3>
+                )}
+                <div className="space-y-0.5">
+                  {isAdmin && (
+                    <NavItem to="/admin" icon={ShieldAlert} label="Control Tower" isCollapsed={isCollapsed} />
+                  )}
+                  {isStaff && (
+                    <NavItem to="/admin/support" icon={LifeBuoy} label="Support Desk" isCollapsed={isCollapsed} />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* SYSTEM */}
+            <div>
+              {!isCollapsed && (
+                <h3 className="text-xs font-semibold text-zinc-500 tracking-wider mb-2 px-3 uppercase font-mono">
+                  System
+                </h3>
+              )}
+              <div className="space-y-0.5">
+                <NavItem to="/settings" icon={Settings} label="Account" isCollapsed={isCollapsed} />
+              </div>
+            </div>
+          </nav>
         </ScrollArea>
 
-        <div className="mt-auto p-4 border-t border-zinc-200/50 dark:border-border flex flex-col gap-4">
-          <div className={cn("flex justify-center", !isCollapsed && "px-2")}>
-            <button
-              onClick={toggleTheme}
-              className="p-2 relative z-50 rounded-xl hover:bg-zinc-100 dark:hover:bg-muted transition-all active:scale-95 flex items-center justify-center w-full group"
-              title="Toggle Theme"
-            >
-              {isDark ? (
-                <Sun className="h-5 w-5 text-zinc-600 dark:text-slate-400" />
-              ) : (
-                <Moon className="h-5 w-5 text-zinc-600 dark:text-slate-400" />
-              )}
-              {!isCollapsed && <span className="ml-3 text-sm font-bold text-zinc-500 group-hover:text-zinc-950 dark:text-foreground">Theme</span>}
-            </button>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger>
-              <div className={cn(
-                "flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-muted transition-all text-left cursor-pointer group",
-                isCollapsed && "justify-center px-0"
-              )}>
-                <Avatar className="h-8 w-8 border border-zinc-200/50 dark:border-border transition-transform group-hover:scale-105">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-black border border-primary/20">
-                    {userInitial}
-                  </AvatarFallback>
-                </Avatar>
-                {!isCollapsed && (
-                  <div className="flex-1 flex items-center justify-between overflow-hidden">
-                    <div className="flex flex-col text-[12px] truncate">
-                      <span className="font-black text-zinc-950 dark:text-foreground truncate">{user?.displayName || user?.email?.split('@')[0]}</span>
-                      <span className="text-zinc-400 dark:text-muted-foreground text-[10px] truncate leading-none">{user?.email}</span>
+        {/* Footer: User Profile & Controls */}
+        <div className="mt-auto p-3 border-t border-zinc-800/80 bg-zinc-950 flex flex-col gap-2 shrink-0">
+          <div className="flex items-center justify-between">
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <div 
+                  className={cn(
+                    "flex items-center gap-2.5 w-full p-1.5 rounded-md hover:bg-zinc-800/50 transition-colors text-left cursor-pointer group",
+                    isCollapsed && "justify-center p-1"
+                  )}
+                >
+                  <Avatar className="h-7 w-7 border border-zinc-800 shrink-0">
+                    <AvatarFallback className="bg-zinc-800 text-zinc-200 text-xs font-bold font-mono">
+                      {userInitial}
+                    </AvatarFallback>
+                  </Avatar>
+                  {!isCollapsed && (
+                    <div className="flex-1 flex items-center justify-between min-w-0">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-semibold text-zinc-200 truncate group-hover:text-white">
+                          {user?.displayName || user?.email?.split('@')[0] || 'Trader'}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500 truncate leading-tight">
+                          {user?.email}
+                        </span>
+                      </div>
+                      <MoreVertical size={13} className="text-zinc-500 group-hover:text-zinc-300 shrink-0 ml-1" />
                     </div>
-                    <MoreVertical size={14} className="text-zinc-400 dark:text-muted-foreground opacity-50 group-hover:opacity-100 shrink-0" />
-                  </div>
-                )}
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-2xl bg-white/90 dark:bg-popover border-zinc-200/50 dark:border-border shadow-2xl p-1 backdrop-blur-xl">
-              <DropdownMenuItem 
-                onClick={() => signOut()}
-                className="flex items-center gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-destructive/10 cursor-pointer rounded-xl px-3 py-2 text-sm font-bold"
-              >
-                <LogOut size={16} />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  )}
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-lg bg-zinc-900 border-zinc-800 shadow-2xl p-1 text-zinc-200">
+                <DropdownMenuItem 
+                  onClick={() => signOut()}
+                  className="flex items-center gap-2 text-rose-400 focus:text-rose-300 focus:bg-rose-950/30 cursor-pointer rounded-md px-2.5 py-1.5 text-xs font-medium"
+                >
+                  <LogOut size={14} />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </aside>
     </>

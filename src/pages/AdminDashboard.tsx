@@ -477,186 +477,194 @@ export const AdminDashboard = () => {
           </div>
           
           {/* Live Status Indicator */}
-          <div className="flex items-center gap-6 bg-white/70 dark:bg-zinc-900/50 border border-zinc-950/5 dark:border-white/5 p-4 rounded-[2rem] shadow-sm dark:shadow-2xl backdrop-blur-[20px]">
+          <div className="flex items-center gap-5 bg-zinc-950/50 border border-zinc-800/80 p-3 rounded-md">
             <div className="flex flex-col">
-              <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">System Time</span>
-              <span className="text-xs font-bold text-zinc-950 dark:text-white">{currentDate}</span>
+              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider mb-0.5">System Time</span>
+              <span className="text-xs font-mono font-medium text-zinc-300">{currentDate}</span>
             </div>
-            <div className="w-px h-8 bg-zinc-200 dark:bg-white/5"></div>
+            <div className="w-px h-6 bg-zinc-800"></div>
             <div className="flex flex-col">
-              <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                <CircleDot className="w-2.5 h-2.5 text-emerald-500 animate-pulse" />
+              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider mb-0.5 flex items-center gap-1.5">
+                <CircleDot className="w-2 h-2 text-emerald-400 animate-pulse" />
                 Live Uptime
               </span>
-              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{uptime}</span>
+              <span className="text-xs font-mono font-bold text-emerald-400">{uptime}</span>
             </div>
           </div>
         </div>
       </header>
       
       {/* The Bento Grid Container - flex-1 and overflow-hidden are key */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 flex-1 overflow-hidden min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 overflow-hidden min-h-0">
         
         {/* Middle Column: Metrics & Command Table - Independent Scroll */}
-        <div className="lg:col-span-3 h-full overflow-y-auto pr-4 space-y-8 scrollbar-hide pb-10 animate-in fade-in slide-in-from-left-8 duration-700 delay-150">
+        <div className="lg:col-span-3 h-full overflow-y-auto pr-2 space-y-6 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent pb-10 animate-in fade-in slide-in-from-left-8 duration-700 delay-150">
           
-          {/* Metric Grid (Bento Style) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="rounded-[32px] border-zinc-950/5 dark:border-white/5 bg-white/70 dark:bg-zinc-900/50 shadow-sm dark:shadow-2xl overflow-hidden relative group backdrop-blur-[20px]">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent pointer-events-none" />
-              <CardContent className="p-8">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-700 dark:text-indigo-500 border border-indigo-500/20">
-                    <Activity size={28} strokeWidth={2.5} />
+          {/* Metric Grid (Uniform Bento Cards) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Card 1: Platform Volume */}
+            <Card className="rounded-md border border-zinc-800/80 bg-zinc-950/50 shadow-none overflow-hidden relative group">
+              <CardContent className="p-5 flex flex-col justify-between h-full min-h-[140px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">Platform Volume</span>
+                  <div className="w-8 h-8 rounded-sm bg-indigo-950/50 border border-indigo-800/60 flex items-center justify-center text-indigo-400">
+                    <Activity size={16} />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Platform Volume</p>
-                  <h3 className="text-5xl font-black tracking-tighter text-zinc-950 dark:text-white">
-                    {isLoading ? '-' : totalTrades?.toLocaleString()}
+                <div className="mt-3">
+                  <h3 className="text-3xl sm:text-4xl font-mono font-bold tracking-tight text-zinc-100">
+                    {isLoading ? '-' : (totalTrades ?? 0).toLocaleString()}
                   </h3>
-                  <div className="flex items-center gap-2 mt-4">
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-500 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">Active</span>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="px-2 py-0.5 rounded-sm bg-emerald-950/40 text-emerald-400 border border-emerald-800/50 text-[10px] font-mono uppercase tracking-wider">
+                      Live Telemetry
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500">System-wide</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-[32px] border-zinc-950/5 dark:border-white/5 bg-white/70 dark:bg-zinc-900/50 shadow-sm dark:shadow-2xl overflow-hidden relative group backdrop-blur-[20px]">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none" />
-              <CardContent className="p-8">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-700 dark:text-blue-500 border border-blue-500/20">
-                    <Users size={28} strokeWidth={2.5} />
+            {/* Card 2: User Base */}
+            <Card className="rounded-md border border-zinc-800/80 bg-zinc-950/50 shadow-none overflow-hidden relative group">
+              <CardContent className="p-5 flex flex-col justify-between h-full min-h-[140px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">User Base</span>
+                  <div className="w-8 h-8 rounded-sm bg-blue-950/50 border border-blue-800/60 flex items-center justify-center text-blue-400">
+                    <Users size={16} />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">User Base</p>
-                  <h3 className="text-5xl font-black tracking-tighter text-zinc-950 dark:text-white">
-                    {isLoading ? '-' : totalUsers?.toLocaleString()}
+                <div className="mt-3">
+                  <h3 className="text-3xl sm:text-4xl font-mono font-bold tracking-tight text-zinc-100">
+                    {isLoading ? '-' : (totalUsers ?? 0).toLocaleString()}
                   </h3>
-                  <div className="flex items-center gap-2 mt-4">
-                    <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-500 text-[10px] font-black uppercase tracking-widest border border-blue-500/20">Verified</span>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="px-2 py-0.5 rounded-sm bg-blue-950/40 text-blue-400 border border-blue-800/50 text-[10px] font-mono uppercase tracking-wider">
+                      Verified
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500">Active Traders</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-[32px] border-zinc-950/5 dark:border-white/5 bg-white/70 dark:bg-zinc-900/50 shadow-sm dark:shadow-2xl overflow-hidden relative group backdrop-blur-[20px]">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent pointer-events-none" />
-              <CardContent className="p-8">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-700 dark:text-emerald-500 border border-emerald-500/20">
-                    <Cpu size={28} strokeWidth={2.5} />
-                  </div>
-                  <div className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-500 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-emerald-500/20">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    Optimal
+            {/* Card 3: Security Protocol */}
+            <Card className="rounded-md border border-zinc-800/80 bg-zinc-950/50 shadow-none overflow-hidden relative group">
+              <CardContent className="p-5 flex flex-col justify-between h-full min-h-[140px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">Security Protocol</span>
+                  <div className="w-8 h-8 rounded-sm bg-emerald-950/50 border border-emerald-800/60 flex items-center justify-center text-emerald-400">
+                    <Cpu size={16} />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Security Protocol</p>
-                  <h3 className="text-3xl font-black tracking-tight mt-1 text-zinc-950 dark:text-white">
+                <div className="mt-3">
+                  <h3 className="text-3xl sm:text-4xl font-mono font-bold tracking-tight text-emerald-400">
                     v3.5-LIVE
                   </h3>
-                  <p className="text-[10px] font-bold text-zinc-500 mt-4 uppercase tracking-widest">
-                    Real-time encryption active
-                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="px-2 py-0.5 rounded-sm bg-emerald-950/40 text-emerald-400 border border-emerald-800/50 text-[10px] font-mono uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Optimal
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500">Zero-Trust Active</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* The Command Table */}
-          <Card className="rounded-[32px] border-zinc-950/5 dark:border-white/5 bg-white/70 dark:bg-zinc-900/50 shadow-sm dark:shadow-2xl overflow-hidden backdrop-blur-[20px]">
-            <CardHeader className="border-b border-zinc-950/5 dark:border-white/5 bg-zinc-50/20 dark:bg-white/5 px-8 py-6">
+          {/* The Command Table (Dense & Institutional) */}
+          <Card className="rounded-md border border-zinc-800/80 bg-zinc-950/50 shadow-none overflow-hidden">
+            <CardHeader className="border-b border-zinc-800/80 bg-zinc-900/40 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl font-black flex items-center gap-3 uppercase tracking-tight text-zinc-950 dark:text-white">
-                    <Users className="w-6 h-6 text-zinc-600 dark:text-zinc-500" />
-                    Command Table
+                  <CardTitle className="text-sm font-mono font-bold flex items-center gap-2 uppercase tracking-wider text-zinc-100">
+                    <Users className="w-4 h-4 text-emerald-400" />
+                    Fleet Command Table
                   </CardTitle>
-                  <p className="text-xs text-zinc-500 mt-1 font-bold uppercase tracking-widest opacity-60">Global Fleet Administration</p>
+                  <p className="text-[10px] font-mono text-zinc-500 mt-0.5 uppercase tracking-wider">Global Fleet Directory & Telemetry</p>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="border-zinc-200 dark:border-white/5 rounded-xl font-black h-10 bg-white dark:bg-zinc-900 px-6 text-[10px] uppercase tracking-widest hover:bg-zinc-50 dark:hover:bg-white/5 text-zinc-950 dark:text-white"
+                  className="border-zinc-800 rounded-sm font-mono h-7 bg-zinc-900 px-3 text-[10px] uppercase tracking-wider hover:bg-zinc-800 text-zinc-300"
                   onClick={exportToCSV}
                 >
-                  Export Data
+                  Export CSV
                 </Button>
               </div>
             </CardHeader>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left align-middle">
-                <thead className="text-[10px] uppercase bg-zinc-50/30 dark:bg-white/5 text-zinc-500 font-black border-b border-zinc-950/5 dark:border-white/5 tracking-[0.2em]">
+            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+              <table className="w-full text-xs text-left align-middle border-collapse">
+                <thead className="text-[10px] uppercase bg-zinc-900/60 text-zinc-500 font-mono font-bold border-b border-zinc-800/80 tracking-wider">
                   <tr>
-                    <th scope="col" className="px-8 py-5 whitespace-nowrap">Trader Identifier</th>
-                    <th scope="col" className="px-8 py-5 whitespace-nowrap text-center">Class</th>
-                    <th scope="col" className="px-8 py-5 whitespace-nowrap">Deployment</th>
-                    <th scope="col" className="px-8 py-5 text-right whitespace-nowrap">Protocols</th>
+                    <th scope="col" className="px-3 py-2 whitespace-nowrap">Trader Identifier</th>
+                    <th scope="col" className="px-3 py-2 whitespace-nowrap text-center">Class</th>
+                    <th scope="col" className="px-3 py-2 whitespace-nowrap">Deployment</th>
+                    <th scope="col" className="px-3 py-2 text-right whitespace-nowrap">Protocols</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y border-zinc-950/5 dark:divide-white/5">
+                <tbody className="divide-y divide-zinc-800/60 font-mono">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={4} className="px-8 py-12 text-center text-zinc-500 font-bold uppercase tracking-widest">
-                        Syncing Fleet...
+                      <td colSpan={4} className="px-3 py-8 text-center text-zinc-500 font-mono uppercase tracking-wider">
+                        Syncing Fleet Records...
                       </td>
                     </tr>
                   ) : users.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-8 py-12 text-center text-zinc-500 font-bold uppercase tracking-widest">
-                        No active deployments.
+                      <td colSpan={4} className="px-3 py-8 text-center text-zinc-500 font-mono uppercase tracking-wider">
+                        No active fleet deployments.
                       </td>
                     </tr>
                   ) : (
                     users.map((user, idx) => (
-                      <tr key={`${user.id}-${idx}`} className="hover:bg-zinc-50/30 dark:hover:bg-white/5 transition-all duration-300 group px-8">
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-950/5 dark:border-white/5 flex items-center justify-center font-black text-sm uppercase text-zinc-600 dark:text-zinc-400 group-hover:border-zinc-300 dark:group-hover:border-white/20 transition-colors">
-                              {(user.display_name || 'A')[0]}
+                      <tr key={`${user.id}-${idx}`} className="hover:bg-zinc-900/40 transition-colors group">
+                        <td className="py-2 px-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-sm bg-zinc-900 border border-zinc-800 flex items-center justify-center font-mono font-bold text-xs uppercase text-zinc-300 shrink-0">
+                              {(user.display_name || user.full_name || 'A')[0]}
                             </div>
-                            <div className="flex flex-col">
-                              <span className="font-black text-zinc-950 dark:text-white text-base tracking-tight">
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-mono font-bold text-xs text-zinc-100 truncate">
                                 {user.full_name || user.display_name || 'Anonymous Trader'}
                               </span>
-                              <span className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mt-1" title={user.id}>
-                                SEC_ID: {user.id.substring(0, 16)}
+                              <span className="text-[10px] font-mono text-zinc-500 truncate" title={user.id}>
+                                UUID: {user.id.substring(0, 18)}...
                               </span>
                             </div>
                           </div>
                         </td>
-                        <td className="px-8 py-6 text-center">
+                        <td className="py-2 px-3 text-center whitespace-nowrap">
                           <span className={cn(
-                            "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
+                            "inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-mono uppercase tracking-wider border",
                             user.role === 'admin' 
-                              ? "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20" 
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-950/5 dark:border-white/5"
+                              ? "bg-purple-950/40 text-purple-400 border-purple-800/50" 
+                              : user.role === 'staff'
+                              ? "bg-amber-950/40 text-amber-400 border-amber-800/50"
+                              : "bg-zinc-900 text-zinc-400 border-zinc-800"
                           )}>
-                            {user.role || 'User'}
+                            {user.role || 'Trader'}
                           </span>
                         </td>
-                        <td className="px-8 py-6 text-zinc-500 dark:text-zinc-400 font-bold text-xs uppercase">
-                          {new Date(user.created_at).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).replace(',', '')}
+                        <td className="py-2 px-3 text-zinc-400 font-mono text-xs whitespace-nowrap">
+                          {new Date(user.created_at).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
-                        <td className="px-8 py-6 text-right">
-                          <div className="flex items-center justify-end gap-3">
+                        <td className="py-2 px-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest px-4 hover:bg-purple-500/10 hover:text-purple-700 dark:hover:text-purple-400 border border-transparent hover:border-purple-500/20"
+                              className="h-7 rounded-sm text-[10px] font-mono uppercase tracking-wider px-2.5 hover:bg-purple-950/40 text-purple-400 border border-purple-900/40 hover:border-purple-700/60"
                               onClick={() => handleGhostUser(user.id)}
                               disabled={impersonatingUserId === user.id}
                             >
-                              <Ghost className="w-4 h-4 mr-2" /> Ghost
+                              <Ghost className="w-3 h-3 mr-1" /> Ghost
                             </Button>
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest px-4 hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-950 dark:text-white border border-transparent hover:border-zinc-200 dark:hover:border-white/10"
+                              className="h-7 rounded-sm text-[10px] font-mono uppercase tracking-wider px-2.5 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 hover:border-zinc-700"
                               onClick={() => handleManageUser(user)}
                             >
                               Manage
@@ -673,59 +681,59 @@ export const AdminDashboard = () => {
         </div>
 
         {/* Right Sidebar: System Controls & Live Feed - Independent Scroll */}
-        <div className="lg:col-span-1 h-full overflow-y-auto space-y-8 scrollbar-hide pb-10 animate-in fade-in slide-in-from-right-8 duration-700 delay-300">
-          <Card className="rounded-[32px] border-zinc-950/5 dark:border-white/5 bg-white/70 dark:bg-zinc-900/50 shadow-sm dark:shadow-2xl backdrop-blur-[20px]">
-            <CardHeader className="border-b border-zinc-950/5 dark:border-white/5 bg-zinc-50/20 dark:bg-white/5 px-8 py-6">
-              <CardTitle className="text-sm font-black flex items-center gap-3 uppercase tracking-[0.2em] text-zinc-950 dark:text-white">
-                <Settings className="w-5 h-5 text-zinc-600 dark:text-zinc-500" />
+        <div className="lg:col-span-1 h-full overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent pb-10 animate-in fade-in slide-in-from-right-8 duration-700 delay-300">
+          <Card className="rounded-md border border-zinc-800/80 bg-zinc-950/50 shadow-none">
+            <CardHeader className="border-b border-zinc-800/80 bg-zinc-900/40 px-4 py-3">
+              <CardTitle className="text-xs font-mono font-bold flex items-center gap-2 uppercase tracking-wider text-zinc-100">
+                <Settings className="w-3.5 h-3.5 text-zinc-400" />
                 System_Ctrl
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-8 space-y-4">
-              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-relaxed mb-6">
+            <CardContent className="p-4 space-y-2">
+              <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">
                 EXECUTING PROTOCOLS WILL AFFECT GLOBAL INSTANCES.
               </p>
               
               <Button 
                 variant="outline" 
-                className="w-full justify-start h-14 rounded-2xl border-zinc-200 dark:border-white/5 bg-white dark:bg-zinc-950/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-black text-[10px] uppercase tracking-widest group transition-all text-zinc-950 dark:text-white"
+                className="w-full justify-start h-9 rounded-sm border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 font-mono text-[11px] uppercase tracking-wider transition-colors text-zinc-200"
                 onClick={() => handleAction('Cache clear')}
               >
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center mr-4 border border-orange-500/20 group-hover:scale-110 transition-transform">
-                  <RefreshCw size={18} className="text-orange-600 dark:text-orange-500" />
+                <div className="w-5 h-5 rounded-sm bg-orange-950/60 flex items-center justify-center mr-2 border border-orange-800/50">
+                  <RefreshCw size={12} className="text-orange-400" />
                 </div>
                 Purge Cache
               </Button>
 
               <Button 
                 variant="outline" 
-                className="w-full justify-start h-14 rounded-2xl border-zinc-200 dark:border-white/5 bg-white dark:bg-zinc-950/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-black text-[10px] uppercase tracking-widest group transition-all text-zinc-950 dark:text-white"
+                className="w-full justify-start h-9 rounded-sm border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 font-mono text-[11px] uppercase tracking-wider transition-colors text-zinc-200"
                 onClick={() => handleAction('Database audit')}
               >
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mr-4 border border-blue-500/20 group-hover:scale-110 transition-transform">
-                  <DatabaseBackup size={18} className="text-blue-600 dark:text-blue-500" />
+                <div className="w-5 h-5 rounded-sm bg-blue-950/60 flex items-center justify-center mr-2 border border-blue-800/50">
+                  <DatabaseBackup size={12} className="text-blue-400" />
                 </div>
                 Verify Integrity
               </Button>
 
               <Button 
                 variant="outline" 
-                className="w-full justify-start h-14 rounded-2xl border-zinc-200 dark:border-white/5 bg-white dark:bg-zinc-950/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-black text-[10px] uppercase tracking-widest group transition-all text-zinc-950 dark:text-white"
+                className="w-full justify-start h-9 rounded-sm border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 font-mono text-[11px] uppercase tracking-wider transition-colors text-zinc-200"
                 onClick={() => handleAction('Broadcast message')}
               >
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center mr-4 border border-purple-500/20 group-hover:scale-110 transition-transform">
-                  <Radio size={18} className="text-purple-600 dark:text-purple-500" />
+                <div className="w-5 h-5 rounded-sm bg-purple-950/60 flex items-center justify-center mr-2 border border-purple-800/50">
+                  <Radio size={12} className="text-purple-400" />
                 </div>
                 Global Broadcast
               </Button>
 
               <Button 
                 variant="outline" 
-                className="w-full justify-start h-14 rounded-2xl border-zinc-200 dark:border-white/5 bg-white dark:bg-zinc-950/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-black text-[10px] uppercase tracking-widest group transition-all text-zinc-950 dark:text-white"
+                className="w-full justify-start h-9 rounded-sm border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 font-mono text-[11px] uppercase tracking-wider transition-colors text-zinc-200"
                 onClick={() => navigate('/admin/support')}
               >
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mr-4 border border-emerald-500/20 group-hover:scale-110 transition-transform">
-                  <Headphones size={18} className="text-emerald-600 dark:text-emerald-400" />
+                <div className="w-5 h-5 rounded-sm bg-emerald-950/60 flex items-center justify-center mr-2 border border-emerald-800/50">
+                  <Headphones size={12} className="text-emerald-400" />
                 </div>
                 Support Telemetry Desk
               </Button>
@@ -733,17 +741,17 @@ export const AdminDashboard = () => {
           </Card>
 
           {/* Live Activity Feed */}
-          <Card className="rounded-[32px] border-zinc-950/5 dark:border-white/5 bg-white/70 dark:bg-zinc-900/50 shadow-sm dark:shadow-2xl backdrop-blur-[20px] overflow-hidden">
-            <CardHeader className="border-b border-zinc-950/5 dark:border-white/5 px-8 py-6 bg-zinc-50/20 dark:bg-white/5">
-              <CardTitle className="text-[10px] font-black flex items-center gap-2 justify-between uppercase tracking-[0.2em] text-zinc-950 dark:text-white">
-                <div className="flex items-center gap-3">
-                  <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
+          <Card className="rounded-md border border-zinc-800/80 bg-zinc-950/50 shadow-none overflow-hidden">
+            <CardHeader className="border-b border-zinc-800/80 px-4 py-3 bg-zinc-900/40">
+              <CardTitle className="text-[10px] font-mono font-bold flex items-center gap-2 justify-between uppercase tracking-wider text-zinc-100">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-emerald-400" />
                   Live_Telemetry
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                   </span>
                 </div>
               </CardTitle>

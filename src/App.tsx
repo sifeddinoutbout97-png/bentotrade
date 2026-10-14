@@ -34,12 +34,14 @@ import { GlobalSupportWidget } from '@/components/GlobalSupportWidget';
 
 const SystemWrapper = ({ children }: { children: React.ReactNode }) => {
   const { exitGhostMode, impersonatingUserId } = useAuth();
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
     <div className="min-h-screen flex flex-col relative">
       <SystemBroadcastListener />
       <BentoCommandPalette />
-      <GlobalSupportWidget />
+      {!isAdminRoute && <GlobalSupportWidget />}
       {children}
       
       {/* Ghost Mode Global Banner */}
@@ -165,16 +167,24 @@ export default function App() {
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/dashboard" element={<Navigate to="/" replace />} />
                             <Route path="/journal" element={<Journal />} />
+                            <Route path="/trades/new" element={<Journal />} />
                             <Route path="/journal-history" element={<JournalHistory />} />
                             <Route path="/ai-insights" element={<AiInsights />} />
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/market-pulse" element={<MarketPulse />} />
+                            <Route path="/marketpulse" element={<Navigate to="/market-pulse" replace />} />
                             <Route path="/pulse" element={<Navigate to="/market-pulse" replace />} />
                             <Route path="/ai-chat" element={<Navigate to="/ai-insights" replace />} />
                             <Route path="/chat" element={<Navigate to="/ai-insights" replace />} />
                             <Route path="/insights" element={<Navigate to="/ai-insights" replace />} />
                             <Route path="/settings" element={<Settings />} />
+                            <Route path="/account" element={<Settings />} />
                             <Route path="/admin" element={
+                              <AdminRoute>
+                                <AdminDashboard />
+                              </AdminRoute>
+                            } />
+                            <Route path="/admin/overview" element={
                               <AdminRoute>
                                 <AdminDashboard />
                               </AdminRoute>

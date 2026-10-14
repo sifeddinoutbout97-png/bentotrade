@@ -561,17 +561,17 @@ export const AdminSupport: React.FC = () => {
                   <div
                     key={t.id}
                     onClick={() => setSelectedTicketId(t.id)}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 min-w-0 ${
+                    className={`p-3 rounded-md border transition-all cursor-pointer flex flex-col gap-1.5 min-w-0 ${
                       isSelected
-                        ? 'bg-white/[0.05] border-emerald-500/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-                        : 'bg-white/[0.01] hover:bg-white/[0.03] border-white/[0.04]'
+                        ? 'bg-zinc-900/90 border-emerald-500/50 shadow-sm'
+                        : 'bg-zinc-950/40 hover:bg-zinc-900/40 border-zinc-800/80'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 min-w-0">
                       <span className="text-xs font-semibold text-zinc-200 truncate min-w-0">
                         {t.subject}
                       </span>
-                      <span className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border shrink-0 ${priorityColor}`}>
+                      <span className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-sm border shrink-0 ${priorityColor}`}>
                         {t.priority}
                       </span>
                     </div>
@@ -580,9 +580,11 @@ export const AdminSupport: React.FC = () => {
                       <div className="flex items-center gap-1.5 truncate min-w-0">
                         <span className="uppercase text-zinc-400 shrink-0">{t.category}</span>
                         <span>•</span>
-                        <span className="capitalize truncate">{t.status.replace('_', ' ')}</span>
+                        <span className="text-zinc-400 truncate">UID:{t.user_id.slice(0, 6)}</span>
+                        <span>•</span>
+                        <span className="capitalize truncate text-zinc-500">{t.status.replace('_', ' ')}</span>
                       </div>
-                      <span className="shrink-0 text-[10px]">
+                      <span className="shrink-0 text-[10px] font-mono">
                         {new Date(t.updated_at || t.created_at).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -621,15 +623,15 @@ export const AdminSupport: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Status & Priority Controls */}
+                {/* Status & Priority Controls + Audio Indicator */}
                 <div className="flex items-center gap-2 shrink-0">
                   {/* Status Dropdown/Selector */}
-                  <div className="flex items-center gap-0.5 bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 text-xs font-mono">
+                  <div className="flex items-center gap-0.5 bg-zinc-900 border border-zinc-800 rounded-md p-0.5 text-xs font-mono">
                     {(['open', 'in_progress', 'resolved', 'closed'] as const).map((st) => (
                       <button
                         key={st}
                         onClick={() => handleUpdateTicketStatus(st)}
-                        className={`px-2 py-1 rounded capitalize transition-all text-xs font-mono ${
+                        className={`px-2 py-1 rounded-sm capitalize transition-all text-xs font-mono ${
                           activeTicket.status === st
                             ? 'bg-zinc-800 text-white font-bold shadow-sm'
                             : 'text-zinc-500 hover:text-zinc-300'
@@ -644,13 +646,25 @@ export const AdminSupport: React.FC = () => {
                   <select
                     value={activeTicket.priority}
                     onChange={(e) => handleUpdateTicketPriority(e.target.value as TicketPriority)}
-                    className="h-7 px-2 text-xs font-mono uppercase bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 focus:outline-none focus:border-zinc-700"
+                    className="h-7 px-2 text-xs font-mono uppercase bg-zinc-900 border border-zinc-800 rounded-md text-zinc-300 focus:outline-none focus:border-zinc-700"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                     <option value="urgent">Urgent</option>
                   </select>
+
+                  {/* Audio indicator */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleSound}
+                    className="h-7 px-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs font-mono gap-1"
+                    title={soundOn ? 'Sound alerts enabled' : 'Sound alerts muted'}
+                  >
+                    {soundOn ? <Volume2 size={13} className="text-emerald-400" /> : <VolumeX size={13} className="text-zinc-600" />}
+                    <span className="hidden xl:inline">{soundOn ? 'Audio ON' : 'Muted'}</span>
+                  </Button>
                 </div>
               </div>
 
@@ -700,7 +714,7 @@ export const AdminSupport: React.FC = () => {
                         </div>
 
                         <div
-                          className={`p-3.5 rounded-2xl text-xs leading-relaxed break-words ${
+                          className={`p-3.5 rounded-md text-xs leading-relaxed break-words ${
                             isStaff
                               ? 'bg-zinc-900 border border-zinc-800 text-zinc-200 shadow-md'
                               : 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-100'
@@ -716,22 +730,24 @@ export const AdminSupport: React.FC = () => {
               </div>
 
               {/* Canned Quick Responses Ribbon */}
-              <div className="px-4 py-2 border-t border-zinc-800/80 bg-zinc-950/60 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <div className="px-4 py-2 border-t border-zinc-800/80 bg-zinc-950/60 flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
                 <span className="text-[10px] font-mono uppercase text-zinc-500 shrink-0">Quick Canned:</span>
-                {CANNED_RESPONSES.map((resp, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setComposerText(resp)}
-                    className="px-2.5 py-1 rounded-lg bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs whitespace-nowrap truncate max-w-[240px] transition-colors text-left"
-                    title={resp}
-                  >
-                    {resp}
-                  </button>
-                ))}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 flex-1">
+                  {CANNED_RESPONSES.map((resp, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setComposerText(resp)}
+                      className="px-2.5 py-1 rounded-md bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono whitespace-nowrap truncate max-w-[260px] transition-colors text-left shrink-0"
+                      title={resp}
+                    >
+                      {resp}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Message Composer */}
-              <div className="p-3.5 sm:p-4 border-t border-zinc-800/80 bg-zinc-950/80 flex flex-col gap-2.5">
+              <div className="p-4 border-t border-zinc-800/80 bg-zinc-950/90 flex flex-col gap-3">
                 <Textarea
                   value={composerText}
                   onChange={(e) => setComposerText(e.target.value)}
@@ -743,12 +759,12 @@ export const AdminSupport: React.FC = () => {
                   }}
                   rows={2}
                   placeholder="Type official staff response... (Enter to send, Shift+Enter for new line)"
-                  className="bg-zinc-900/60 border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-emerald-500/40 rounded-xl resize-none p-3"
+                  className="bg-zinc-900/60 border-zinc-800 text-xs font-mono text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-emerald-500/40 rounded-md resize-none p-3 w-full"
                 />
 
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-mono text-zinc-600 hidden sm:inline">
-                    Institutional encrypted live duplex
+                    Institutional encrypted live duplex • Protocol v5.0
                   </span>
 
                   <div className="flex items-center gap-2 ml-auto">
@@ -757,7 +773,7 @@ export const AdminSupport: React.FC = () => {
                       size="sm"
                       disabled={!composerText.trim() || isSendingMessage}
                       onClick={() => handleSendStaffMessage(true)}
-                      className="h-8 rounded-lg border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono"
+                      className="h-8 rounded-md border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono"
                     >
                       Reply & Resolve
                     </Button>
@@ -765,7 +781,7 @@ export const AdminSupport: React.FC = () => {
                       size="sm"
                       disabled={!composerText.trim() || isSendingMessage}
                       onClick={() => handleSendStaffMessage(false)}
-                      className="h-8 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
+                      className="h-8 px-4 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
                     >
                       {isSendingMessage ? (
                         <Loader2 size={13} className="animate-spin" />
@@ -803,7 +819,7 @@ export const AdminSupport: React.FC = () => {
           {activeTicket ? (
             <div className="flex flex-col gap-4">
               {/* User Profile Card */}
-              <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/80 flex flex-col gap-3">
+              <div className="p-3.5 rounded-md bg-zinc-900/40 border border-zinc-800/80 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">
                     {userProfile?.full_name?.[0]?.toUpperCase() || userProfile?.email?.[0]?.toUpperCase() || 'U'}
@@ -830,7 +846,7 @@ export const AdminSupport: React.FC = () => {
                 {/* User UUID */}
                 <div className="flex flex-col gap-1 pt-2 border-t border-zinc-800/80">
                   <span className="text-[10px] font-mono text-zinc-500">USER UUID</span>
-                  <div className="flex items-center justify-between bg-black/60 px-2 py-1.5 rounded-lg border border-zinc-800">
+                  <div className="flex items-center justify-between bg-black/60 px-2 py-1.5 rounded-md border border-zinc-800">
                     <span className="font-mono text-[10px] text-zinc-400 truncate">
                       {activeTicket.user_id}
                     </span>
@@ -848,7 +864,7 @@ export const AdminSupport: React.FC = () => {
               </div>
 
               {/* Ghost Mode Launcher */}
-              <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/30 flex flex-col gap-2">
+              <div className="p-3.5 rounded-md bg-purple-950/20 border border-purple-500/30 flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-purple-400 font-mono text-xs font-bold">
                   <Ghost size={14} />
                   <span>Ghost Protocol</span>
@@ -861,14 +877,14 @@ export const AdminSupport: React.FC = () => {
                     initiateGhostMode(activeTicket.user_id);
                     navigate('/');
                   }}
-                  className="mt-1 h-8 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-xs font-mono font-bold uppercase tracking-wider rounded-lg"
+                  className="mt-1 h-8 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-xs font-mono font-bold uppercase tracking-wider rounded-md"
                 >
                   Initiate Ghost Session
                 </Button>
               </div>
 
               {/* Ticket Meta Summary */}
-              <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/80 flex flex-col gap-2 text-xs font-mono">
+              <div className="p-3.5 rounded-md bg-zinc-900/40 border border-zinc-800/80 flex flex-col gap-2 text-xs font-mono">
                 <span className="text-[10px] text-zinc-500 uppercase font-bold">TICKET TELEMETRY</span>
                 <div className="flex justify-between py-1 border-b border-zinc-800/80">
                   <span className="text-zinc-500">Created:</span>

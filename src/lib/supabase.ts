@@ -36,9 +36,13 @@ export const getSupabase = (): SupabaseClient => supabase;
  */
 export const isJwtExpiredError = (err: any): boolean => {
   if (!err) return false;
-  const code = err.code || err?.error?.code;
-  const message = err.message || err?.error?.message || (typeof err === 'string' ? err : '');
-  return code === 'PGRST303' || /jwt expired/i.test(message);
+  const code = err.code || err?.error?.code || err?.status;
+  const message = err.message || err?.error?.message || err?.error_description || (typeof err === 'string' ? err : '');
+  const stringified = typeof err === 'object' ? JSON.stringify(err) : '';
+  return code === 'PGRST303' || 
+         /jwt expired/i.test(message) || 
+         /PGRST303/i.test(stringified) ||
+         /jwt expired/i.test(stringified);
 };
 
 let refreshPromise: Promise<boolean> | null = null;
@@ -113,7 +117,16 @@ export const withAuthRetry = async <T>(operation: () => Promise<T>): Promise<T> 
       console.warn('JWT expired detected (PGRST303). Refreshing Supabase session and retrying...');
       const refreshed = await safeRefreshSession();
       if (refreshed) {
-        return await operation();
+        try {
+          return await operation();
+        } catch (retryErr: any) {
+          if (isJwtExpiredError(retryErr)) {
+            console.warn('Session refresh did not resolve expired JWT. Clearing stale auth.');
+            await supabase.auth.signOut().catch(() => {});
+            throw new Error('Your session has expired. Please sign in again.');
+          }
+          throw retryErr;
+        }
       } else {
         console.warn('Unable to refresh expired session. Clearing stale auth.');
         await supabase.auth.signOut().catch(() => {});

@@ -62,149 +62,189 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 p-6 animate-in fade-in duration-500 pb-20">
-      <header>
-        <h1 className="text-[40px] font-bold text-foreground tracking-tight mb-2">Account</h1>
-        <p className="text-muted-foreground text-lg font-medium opacity-80">Manage your profile and account preferences.</p>
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 md:p-8 animate-in fade-in duration-500 pb-20">
+      {/* Header */}
+      <header className="pb-4 border-b border-zinc-800/80">
+        <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-zinc-500 mb-1">
+          <span>System</span> / <span>Settings</span> / <span className="text-emerald-500">Account Telemetry</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-mono font-bold tracking-tight text-zinc-100">
+          Account & Modules
+        </h1>
+        <p className="text-xs font-mono text-zinc-400 mt-1">
+          Manage identity credentials, cryptographic session telemetry, and active execution modules.
+        </p>
       </header>
 
-      <section className="grid gap-8">
-        {/* Profile Card */}
-        <Card className="rounded-3xl border-border bg-card shadow-sm overflow-hidden border-none ring-1 ring-border">
-          <CardHeader className="bg-muted/30 border-b border-border py-8 px-10">
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground text-3xl font-black shadow-2xl shadow-primary/20">
-                {user?.email?.[0].toUpperCase()}
-              </div>
-              <div className="space-y-2">
-                <CardTitle className="text-2xl font-black text-foreground">Trader Profile</CardTitle>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-none rounded-lg px-3 py-0.5 font-bold">Active</Badge>
-                  <span className="opacity-40">•</span>
-                  <span className="font-medium">Member since {new Date(user?.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-10 space-y-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Email Address</label>
-                  <div className="flex items-center gap-3 text-foreground font-bold text-lg">
-                    <Mail size={18} className="text-primary opacity-60" />
-                    {user?.email}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Account ID</label>
-                  <div className="flex items-center gap-3 text-muted-foreground font-mono text-xs opacity-80">
-                    <Shield size={18} className="opacity-40" />
-                    {user?.id}
-                  </div>
-                </div>
-              </div>
+      {/* 12-Column Asymmetrical Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT COLUMN: Trader Profile (4 Columns on LG) */}
+        <div className="col-span-1 lg:col-span-4 rounded-md border border-zinc-800/80 bg-zinc-950/50 p-6 space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
+              <User size={13} className="text-emerald-400" /> Trader Identity
+            </span>
+            <Badge className="bg-emerald-950/50 text-emerald-400 border-emerald-800/60 rounded-sm font-mono text-[10px] uppercase px-2 py-0.5">
+              Active
+            </Badge>
+          </div>
 
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="p-5 rounded-2xl bg-muted/20 border border-border space-y-2 group hover:border-primary/20 transition-all">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <BarChart3 size={14} className="group-hover:text-primary transition-colors" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Trades</span>
-                    </div>
-                    <p className="text-2xl font-black text-foreground">{stats?.totalTrades || 0}</p>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-muted/20 border border-border space-y-2 group hover:border-primary/20 transition-all">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Trophy size={14} className="group-hover:text-amber-400 transition-colors" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Win Rate</span>
-                    </div>
-                    <p className="text-2xl font-black text-foreground">{stats?.winRate.toFixed(1) || 0}%</p>
-                  </div>
-                </div>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-sm bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-100 text-2xl font-mono font-bold shrink-0">
+              {user?.email?.[0].toUpperCase() || 'U'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-mono font-bold text-zinc-100 truncate">
+                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Authenticated Trader'}
               </div>
+              <div className="text-xs font-mono text-zinc-400 truncate mt-0.5">
+                {user?.email}
+              </div>
+              <div className="text-[10px] font-mono text-zinc-500 mt-1">
+                Joined: {user?.created_at ? new Date(user.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric', day: 'numeric' }) : 'Unknown'}
+              </div>
+            </div>
+          </div>
+
+          {/* Account UUID Badge */}
+          <div className="space-y-1.5 pt-2 border-t border-zinc-800/60">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 flex items-center gap-1">
+              <Shield size={11} className="text-zinc-600" /> Account UUID
+            </span>
+            <div className="p-2.5 rounded-sm bg-zinc-900/80 border border-zinc-800 font-mono text-xs text-zinc-300 break-all select-all">
+              {user?.id || 'SEC_UNASSIGNED'}
+            </div>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800/60">
+            <div className="p-3 rounded-sm bg-zinc-900/60 border border-zinc-800 space-y-1">
+              <div className="flex items-center gap-1.5 text-zinc-500 text-[10px] font-mono uppercase tracking-wider">
+                <BarChart3 size={11} /> Trades
+              </div>
+              <p className="text-xl font-mono font-bold text-zinc-100">
+                {stats?.totalTrades || 0}
+              </p>
+            </div>
+            <div className="p-3 rounded-sm bg-zinc-900/60 border border-zinc-800 space-y-1">
+              <div className="flex items-center gap-1.5 text-zinc-500 text-[10px] font-mono uppercase tracking-wider">
+                <Trophy size={11} className="text-amber-400" /> Win Rate
+              </div>
+              <p className="text-xl font-mono font-bold text-emerald-400">
+                {stats?.winRate?.toFixed(1) || 0}%
+              </p>
+            </div>
+          </div>
+
+          {/* Security & Sign Out */}
+          <div className="space-y-4 pt-4 border-t border-zinc-800/80">
+            <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-400">
+              <CircleCheck size={14} className="text-emerald-500 shrink-0" />
+              <span>Session Authenticated & Encrypted</span>
             </div>
 
-            <div className="pt-10 border-t border-border flex items-center justify-between">
-              <div className="flex items-center gap-3 text-muted-foreground text-sm font-medium">
-                <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <CircleCheck size={16} className="text-emerald-500" />
-                </div>
-                Data secured by Supabase Zero-Trust
-              </div>
-              <Button 
-                variant="outline" 
-                onClick={handleLogout}
-                className="h-11 px-6 rounded-xl border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all font-bold gap-3 text-foreground"
-              >
-                <LogOut size={16} />
-                Sign Out
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Preferences Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card className="rounded-3xl border-zinc-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md shadow-sm p-8 space-y-6 group hover:border-primary/20 transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                <TrendingUp size={24} />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg text-foreground tracking-tight">Trade Logging Engine</h3>
-                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-60">Contract multipliers active</p>
-              </div>
-            </div>
-            <p className="text-[15px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-              Trade Logging Engine v3.8 is now fully synchronized with Supabase real-time telemetry. Featuring enhanced high-frequency auditing for $NQ and $ES contract multipliers, and automated precision journaling for multi-asset execution. Zero-latency PnL tracking is now active across all global corridors.
-            </p>
-            <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-400 border-none font-bold uppercase text-[10px] tracking-widest px-3">V3.8 ACTIVE</Badge>
-          </Card>
-
-          <Card className="rounded-3xl border-zinc-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md shadow-sm p-8 space-y-6 border-dashed relative overflow-hidden group hover:border-border/80 transition-all">
-            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-700">
-              <Bot size={80} />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center">
-                <Sparkles size={24} />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg text-foreground tracking-tight">AI Insights v4.5</h3>
-                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-60">Operational</p>
-              </div>
-            </div>
-            <p className="text-[15px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-              AI Insights v4.5 has transitioned to the Neural-Sync Pipeline. Currently processing institutional order flow data and deep-risk neural audits. Predictive sentiment modeling and volatility clustering analysis are now integrated for real-time strategic intelligence.
-            </p>
-            <Badge variant="secondary" className="bg-orange-500/10 text-orange-400 border-none font-bold uppercase text-[10px] tracking-widest px-3">V4.5 PIPELINE</Badge>
-          </Card>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="w-full h-9 rounded-sm border-zinc-800 bg-zinc-900/60 hover:bg-rose-950/40 hover:text-rose-400 hover:border-rose-800/60 transition-colors font-mono text-xs uppercase tracking-wider gap-2 text-zinc-300"
+            >
+              <LogOut size={13} />
+              Sign Out Session
+            </Button>
+          </div>
         </div>
 
-        {isAdmin && (
-          <div className="grid grid-cols-1 gap-8 mt-8">
-            <Card className="rounded-3xl border-destructive/20 bg-card shadow-sm p-8 space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center">
-                  <Shield size={24} />
+        {/* RIGHT COLUMN: System Modules (8 Columns on LG, Vertically Stacked) */}
+        <div className="col-span-1 lg:col-span-8 flex flex-col gap-6">
+          {/* Module 1: Trade Logging Engine */}
+          <div className="rounded-md border border-zinc-800/80 bg-zinc-950/50 p-6 space-y-4">
+            <div className="flex flex-row items-center justify-between whitespace-nowrap gap-4 pb-1">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-sm bg-indigo-950/60 text-indigo-400 border border-indigo-800/60 flex items-center justify-center shrink-0">
+                  <TrendingUp size={16} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-foreground tracking-tight">System Configuration (Admin)</h3>
-                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-60">Global Settings</p>
+                  <h3 className="font-mono font-bold text-sm text-zinc-100">Trade Logging Engine</h3>
+                  <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">High-Frequency Telemetry</p>
                 </div>
               </div>
-              <p className="text-[15px] text-muted-foreground leading-relaxed font-medium mt-2">
-                As an administrator, you have access to core system operations. Extreme caution is advised when modifying global settings.
-              </p>
-              <div className="flex items-center gap-4 pt-4">
-                {/* Future settings can go here */}
-                <Button variant="outline" className="border-border rounded-xl font-bold" onClick={() => window.location.href='/admin'}>Go to Admin Dashboard</Button>
-              </div>
-            </Card>
+              <Badge className="bg-indigo-950/40 text-indigo-400 border-indigo-800/50 rounded-sm font-mono text-[9px] uppercase px-2 py-0.5 shrink-0">
+                V5.0 ACTIVE
+              </Badge>
+            </div>
+
+            <p className="text-sm text-zinc-400 leading-relaxed font-sans">
+              Real-time execution telemetry synchronized via Supabase zero-trust infrastructure. Automated multi-asset precision journaling with native support for index futures (NQ, ES), commodities (CL, GC), and Forex contract multipliers.
+            </p>
+
+            <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+              <span>Zero-latency sync</span>
+              <span className="text-emerald-400">ONLINE</span>
+            </div>
           </div>
-        )}
-      </section>
+
+          {/* Module 2: AI Insights v5.0 */}
+          <div className="rounded-md border border-zinc-800/80 bg-zinc-950/50 p-6 space-y-4">
+            <div className="flex flex-row items-center justify-between whitespace-nowrap gap-4 pb-1">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-sm bg-amber-950/60 text-amber-400 border border-amber-800/60 flex items-center justify-center shrink-0">
+                  <Sparkles size={16} />
+                </div>
+                <div>
+                  <h3 className="font-mono font-bold text-sm text-zinc-100">AI Insights v5.0</h3>
+                  <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Neural Risk Audit</p>
+                </div>
+              </div>
+              <Badge className="bg-amber-950/40 text-amber-400 border-amber-800/50 rounded-sm font-mono text-[9px] uppercase px-2 py-0.5 shrink-0">
+                V5.0 PIPELINE
+              </Badge>
+            </div>
+
+            <p className="text-sm text-zinc-400 leading-relaxed font-sans">
+              Quantitative behavioral analysis engine. Continuously audits execution history to identify expectancy variance, win/loss clustering, and revenge trading triggers, enforcing strict risk protocol adherence.
+            </p>
+
+            <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+              <span>Pattern recognition</span>
+              <span className="text-emerald-400">ARMED</span>
+            </div>
+          </div>
+
+          {/* Module 3: System Configuration (Admin Only) */}
+          {isAdmin && (
+            <div className="rounded-md border border-purple-900/40 bg-zinc-950/50 p-6 space-y-4">
+              <div className="flex flex-row items-center justify-between whitespace-nowrap gap-4 pb-1">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-sm bg-purple-950/60 text-purple-400 border border-purple-800/60 flex items-center justify-center shrink-0">
+                    <Shield size={16} />
+                  </div>
+                  <div>
+                    <h3 className="font-mono font-bold text-sm text-zinc-100">Control Tower Root Access</h3>
+                    <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Fleet Administration & Audit</p>
+                  </div>
+                </div>
+                <Badge className="bg-purple-950/40 text-purple-400 border-purple-800/50 rounded-sm font-mono text-[9px] uppercase px-2 py-0.5 shrink-0">
+                  SEC_LEVEL_ROOT
+                </Badge>
+              </div>
+
+              <p className="text-sm text-zinc-400 leading-relaxed font-sans">
+                As a system administrator, you have access to core fleet operations, Ghost Mode session simulation, database integrity audits, and global user permissions.
+              </p>
+
+              <div className="pt-2 flex items-center justify-end">
+                <Button 
+                  variant="outline" 
+                  className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-100 rounded-sm font-mono text-xs h-8 px-4"
+                  onClick={() => window.location.href = '/admin'}
+                >
+                  Launch Control Tower →
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

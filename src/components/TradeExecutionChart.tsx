@@ -364,32 +364,32 @@ export const TradeExecutionChart: React.FC<TradeExecutionChartProps> = ({
     <div 
       ref={containerRef}
       className={cn(
-        "relative rounded-3xl bg-[#0b0f19] border border-slate-800 shadow-xl overflow-hidden flex flex-col select-none",
+        "relative rounded-md bg-zinc-950 border border-zinc-800/80 shadow-none overflow-hidden flex flex-col select-none",
         className
       )}
       style={{ height: `${height}px` }}
     >
       {/* Top Telemetry Header Bar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-sm z-10">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur-sm z-10">
         <div className="flex items-center gap-3">
-          <span className="font-black text-sm text-white tracking-tight">{ticker}</span>
+          <span className="font-mono font-bold text-xs text-zinc-100 tracking-wider">{ticker}</span>
           <span className={cn(
-            "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider",
-            direction === 'long' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+            "px-2 py-0.5 rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider",
+            direction === 'long' ? "bg-emerald-950/40 text-emerald-400 border border-emerald-800/50" : "bg-rose-950/40 text-rose-400 border border-rose-800/50"
           )}>
             {direction.toUpperCase()}
           </span>
 
           {hoveredCandle ? (
             <div className="hidden sm:flex items-center gap-3 text-[11px] font-mono">
-              <span className="text-slate-400">O: <strong className="text-white">${hoveredCandle.open}</strong></span>
-              <span className="text-slate-400">H: <strong className="text-emerald-400">${hoveredCandle.high}</strong></span>
-              <span className="text-slate-400">L: <strong className="text-rose-400">${hoveredCandle.low}</strong></span>
-              <span className="text-slate-400">C: <strong className={hoveredCandle.close >= hoveredCandle.open ? "text-emerald-400" : "text-rose-400"}>${hoveredCandle.close}</strong></span>
+              <span className="text-zinc-500">O: <strong className="text-zinc-200">${hoveredCandle.open}</strong></span>
+              <span className="text-zinc-500">H: <strong className="text-emerald-400">${hoveredCandle.high}</strong></span>
+              <span className="text-zinc-500">L: <strong className="text-rose-400">${hoveredCandle.low}</strong></span>
+              <span className="text-zinc-500">C: <strong className={hoveredCandle.close >= hoveredCandle.open ? "text-emerald-400" : "text-rose-400"}>${hoveredCandle.close}</strong></span>
             </div>
           ) : (
-            <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono text-slate-400">
-              <span>Interactive Execution Map</span>
+            <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono text-zinc-500">
+              <span className="uppercase tracking-wider">Execution Map</span>
               <span>•</span>
               <span>Entry: ${entryPrice.toFixed(2)}</span>
               {stopLoss && <span>• SL: ${stopLoss.toFixed(2)}</span>}
@@ -400,8 +400,8 @@ export const TradeExecutionChart: React.FC<TradeExecutionChartProps> = ({
 
         {pnl !== undefined && (
           <div className={cn(
-            "text-xs font-mono font-black px-2.5 py-1 rounded-xl border",
-            pnl >= 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+            "text-xs font-mono font-bold px-2.5 py-0.5 rounded-sm border",
+            pnl >= 0 ? "bg-emerald-950/40 text-emerald-400 border-emerald-800/50" : "bg-rose-950/40 text-rose-400 border-rose-800/50"
           )}>
             PnL: {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
           </div>
@@ -421,7 +421,7 @@ export const TradeExecutionChart: React.FC<TradeExecutionChartProps> = ({
         {/* Hover Tooltip Overlay */}
         {hoveredCandle && mousePos && (
           <div 
-            className="absolute pointer-events-none z-20 px-3 py-2 rounded-xl bg-slate-900/95 border border-slate-700 shadow-2xl backdrop-blur-md text-[10px] font-mono text-slate-200 space-y-1"
+            className="absolute pointer-events-none z-20 px-3 py-2 rounded-sm bg-zinc-900/95 border border-zinc-800 shadow-2xl backdrop-blur-md text-[10px] font-mono text-zinc-200 space-y-1"
             style={{
               left: Math.min(dimensions.width - 150, Math.max(10, mousePos.x - 70)),
               top: Math.max(10, Math.min(dimensions.height - 110, mousePos.y - 75))

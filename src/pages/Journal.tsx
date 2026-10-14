@@ -127,41 +127,47 @@ export const Journal = () => {
   const [marketType, setMarketType] = useState<'futures' | 'cfds'>('futures');
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl pb-20">
-      <header className="mb-12">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
-          <span>Trades</span> / <span className="font-bold text-foreground">New Trade</span>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
+      {/* Header & Market Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-zinc-800/80">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-zinc-500 mb-1">
+            <span>Terminal</span> / <span>Trades</span> / <span className="text-emerald-500">Execution Logger</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-mono font-bold tracking-tight text-zinc-100">
+            Trade Journal
+          </h1>
         </div>
-      </header>
 
-      {/* Market Toggle Switch */}
-      <div className="mb-8 p-1 bg-muted rounded-xl w-fit flex items-center gap-1 border border-border">
-        <button
-          type="button"
-          onClick={() => setMarketType('futures')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-            marketType === 'futures' 
-              ? "bg-background text-foreground shadow-sm border border-border" 
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <ScrollText size={14} className={marketType === 'futures' ? "text-foreground" : "opacity-40"} />
-          Futures
-        </button>
-        <button
-          type="button"
-          onClick={() => setMarketType('cfds')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-            marketType === 'cfds' 
-              ? "bg-background text-foreground shadow-sm border border-border" 
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Globe size={14} className={marketType === 'cfds' ? "text-foreground" : "opacity-40"} />
-          CFDs
-        </button>
+        {/* Market Toggle Switch */}
+        <div className="p-1 bg-zinc-900/80 rounded-md w-fit flex items-center gap-1 border border-zinc-800/80">
+          <button
+            type="button"
+            onClick={() => setMarketType('futures')}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-mono font-medium transition-colors",
+              marketType === 'futures' 
+                ? "bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60" 
+                : "text-zinc-400 hover:text-zinc-200"
+            )}
+          >
+            <ScrollText size={13} className={marketType === 'futures' ? "text-emerald-400" : "opacity-40"} />
+            Futures (E-mini/Micro)
+          </button>
+          <button
+            type="button"
+            onClick={() => setMarketType('cfds')}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-mono font-medium transition-colors",
+              marketType === 'cfds' 
+                ? "bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60" 
+                : "text-zinc-400 hover:text-zinc-200"
+            )}
+          >
+            <Globe size={13} className={marketType === 'cfds' ? "text-emerald-400" : "opacity-40"} />
+            CFDs / Forex
+          </button>
+        </div>
       </div>
 
       <TradeForm key={marketType} marketType={marketType} />
@@ -352,283 +358,353 @@ const TradeForm = ({ marketType }: { marketType: 'futures' | 'cfds' }) => {
   };
 
   return (
-    <>
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 md:mb-10 gap-6">
-        <h1 className="text-3xl md:text-[40px] font-bold text-foreground leading-tight tracking-tight flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          {form.watch('ticker') ? (
-            <>
-              <span className="font-extrabold tracking-tighter uppercase">{form.watch('ticker')}</span>
-              <span className="text-xl md:text-2xl font-medium text-muted-foreground opacity-40">Trade</span>
-              <span className="px-2 py-0.5 bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-widest rounded-md border border-border">
-                {marketType === 'futures' ? 'Futures' : 'CFD'}
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* Top Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-md border border-zinc-800/80 bg-zinc-950/50">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-sm bg-zinc-900 border border-zinc-800 flex items-center justify-center font-mono font-bold text-sm text-zinc-200">
+            {form.watch('ticker') ? form.watch('ticker').substring(0, 3) : '---'}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-lg font-bold text-zinc-100">
+                {form.watch('ticker') || 'UNTITLED EXECUTION'}
               </span>
-            </>
-          ) : (
-            'New Trade'
-          )}
-        </h1>
+              <span className="px-1.5 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider bg-zinc-900 text-zinc-400 rounded-sm border border-zinc-800">
+                {marketType}
+              </span>
+            </div>
+            <p className="text-xs font-mono text-zinc-500">
+              {direction.toUpperCase()} • SIZE: {size} {form.watch('size_type')}
+            </p>
+          </div>
+        </div>
+
         <Button 
-          onClick={form.handleSubmit(onSubmit)} 
+          type="submit"
           disabled={isSubmitting}
-          className="w-full md:w-auto bg-primary text-primary-foreground hover:opacity-90 h-10 px-6 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95 justify-center"
+          className="bg-emerald-600 hover:bg-emerald-500 text-white h-9 px-5 rounded-md font-mono text-xs uppercase tracking-wider transition-colors shadow-none"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              Recording...
             </>
           ) : (
             <>
-              <Save className="mr-2 h-4 w-4" />
-              Save Trade
+              <Save className="mr-2 h-3.5 w-3.5" />
+              Record Execution
             </>
           )}
         </Button>
       </div>
 
-      <form className="space-y-0 border-t border-border">
-        <PropertyItem label="Ticker" icon={marketType === 'futures' ? ScrollText : Coins}>
-          <Select 
-            value={form.watch('ticker')}
-            onValueChange={(v) => form.setValue('ticker', v)}
-          >
-            <SelectTrigger className="border-none focus:ring-0 p-0 h-7 text-sm font-bold bg-transparent shadow-none hover:bg-transparent uppercase text-foreground">
-              <SelectValue placeholder="Select ticker..." />
-            </SelectTrigger>
-            <SelectContent className="border-border shadow-2xl rounded-xl bg-popover">
-              {Object.entries(ASSET_CONFIG)
-                .filter(([_, config]) => config.type === marketType)
-                .map(([ticker]) => (
-                <SelectItem key={ticker} value={ticker} className="text-sm font-medium">
-                  {ticker}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </PropertyItem>
-
-        <PropertyItem label="Direction" icon={ArrowRightLeft}>
-          <Select 
-            onValueChange={(v) => form.setValue('direction', v as any)} 
-            defaultValue="long"
-          >
-            <SelectTrigger className="border-none focus:ring-0 p-0 h-7 text-sm font-bold bg-transparent shadow-none hover:bg-transparent text-foreground">
-              <SelectValue placeholder="Select side" />
-            </SelectTrigger>
-            <SelectContent className="border-border shadow-2xl rounded-xl bg-popover">
-              <SelectItem value="long" className="text-sm">Long</SelectItem>
-              <SelectItem value="short" className="text-sm">Short</SelectItem>
-            </SelectContent>
-          </Select>
-        </PropertyItem>
-
-        <PropertyItem label="Trade Date" icon={CalendarIcon}>
-          <Input 
-            type="date"
-            {...form.register('trade_date')}
-            className="border-none focus-visible:ring-0 px-0 h-7 text-sm bg-transparent font-bold text-foreground"
-          />
-        </PropertyItem>
-
-        <PropertyItem label="Entry Price" icon={DollarSign}>
-          <Input 
-            type="number"
-            step="0.01"
-            {...form.register('entry_price')}
-            className="border-none focus-visible:ring-0 px-0 h-7 text-sm bg-transparent font-bold text-foreground"
-          />
-        </PropertyItem>
-
-        <PropertyItem label="Exit Price" icon={DollarSign}>
-          <Input 
-            type="number"
-            step="0.01"
-            {...form.register('exit_price')}
-            className="border-none focus-visible:ring-0 px-0 h-7 text-sm bg-transparent font-bold text-foreground"
-          />
-        </PropertyItem>
-
-        <PropertyItem label="Stop Loss" icon={Shield}>
-          <div className="flex items-center justify-between w-full">
-            <Input 
-              type="number"
-              step="0.01"
-              {...form.register('stop_loss')}
-              className="border-none focus-visible:ring-0 px-0 h-7 text-sm bg-transparent font-bold text-foreground"
-            />
-            {calculatedRisk > 0 && (
-              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">
-                Risk: -${calculatedRisk.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
-            )}
+      {/* 2-Column Institutional Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* COLUMN 1: Execution Data */}
+        <div className="rounded-md border border-zinc-800/80 bg-zinc-950/50 p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+            <div className="flex items-center gap-2">
+              <ScrollText className="w-4 h-4 text-emerald-400" />
+              <h2 className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-300">
+                Execution Parameters
+              </h2>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-500">ORDER_FILL_DATA</span>
           </div>
-        </PropertyItem>
 
-        <PropertyItem label={marketType === 'futures' ? "Size (Contracts)" : "Size (Lots)"} icon={Layers}>
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4 flex-1">
+          <div className="space-y-3 font-mono">
+            {/* Ticker Selector */}
+            <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] sm:items-center gap-2 py-2 border-b border-zinc-800/60">
+              <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+                <Coins size={13} className="text-zinc-500" /> Ticker
+              </span>
+              <Select 
+                value={form.watch('ticker')}
+                onValueChange={(v) => form.setValue('ticker', v)}
+              >
+                <SelectTrigger className="border-zinc-800 bg-zinc-900/80 rounded-sm h-8 text-xs font-mono font-bold text-zinc-100">
+                  <SelectValue placeholder="Select instrument..." />
+                </SelectTrigger>
+                <SelectContent className="border-zinc-800 bg-zinc-900 font-mono text-xs">
+                  {Object.entries(ASSET_CONFIG)
+                    .filter(([_, config]) => config.type === marketType)
+                    .map(([tickerKey, config]) => (
+                    <SelectItem key={tickerKey} value={tickerKey} className="text-xs font-mono">
+                      {tickerKey} ({config.name})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Direction */}
+            <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] sm:items-center gap-2 py-2 border-b border-zinc-800/60">
+              <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+                <ArrowRightLeft size={13} className="text-zinc-500" /> Direction
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => form.setValue('direction', 'long')}
+                  className={cn(
+                    "h-8 rounded-sm text-xs font-mono font-bold border transition-colors flex items-center justify-center gap-1",
+                    direction === 'long'
+                      ? "bg-emerald-950/50 text-emerald-400 border-emerald-600/60"
+                      : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                  )}
+                >
+                  ▲ LONG
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue('direction', 'short')}
+                  className={cn(
+                    "h-8 rounded-sm text-xs font-mono font-bold border transition-colors flex items-center justify-center gap-1",
+                    direction === 'short'
+                      ? "bg-rose-950/50 text-rose-400 border-rose-600/60"
+                      : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                  )}
+                >
+                  ▼ SHORT
+                </button>
+              </div>
+            </div>
+
+            {/* Trade Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] sm:items-center gap-2 py-2 border-b border-zinc-800/60">
+              <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+                <CalendarIcon size={13} className="text-zinc-500" /> Execution Date
+              </span>
+              <Input 
+                type="date"
+                {...form.register('trade_date')}
+                className="border-zinc-800 bg-zinc-900/80 rounded-sm h-8 text-xs font-mono text-zinc-100"
+              />
+            </div>
+
+            {/* Entry & Exit Prices */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2 border-b border-zinc-800/60">
+              <div className="space-y-1">
+                <label className="text-[11px] text-zinc-400 flex items-center gap-1">
+                  <DollarSign size={12} className="text-zinc-500" /> Entry Price
+                </label>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  {...form.register('entry_price')}
+                  className="border-zinc-800 bg-zinc-900/80 rounded-sm h-8 text-xs font-mono font-bold text-zinc-100"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-zinc-400 flex items-center gap-1">
+                  <DollarSign size={12} className="text-zinc-500" /> Exit Price
+                </label>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  {...form.register('exit_price')}
+                  className="border-zinc-800 bg-zinc-900/80 rounded-sm h-8 text-xs font-mono font-bold text-zinc-100"
+                />
+              </div>
+            </div>
+
+            {/* Stop Loss & Risk */}
+            <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] sm:items-center gap-2 py-2 border-b border-zinc-800/60">
+              <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+                <Shield size={13} className="text-zinc-500" /> Stop Loss
+              </span>
+              <div className="flex items-center gap-2">
+                <Input 
+                  type="number"
+                  step="0.01"
+                  {...form.register('stop_loss')}
+                  className="border-zinc-800 bg-zinc-900/80 rounded-sm h-8 text-xs font-mono text-zinc-100 flex-1"
+                />
+                {calculatedRisk > 0 && (
+                  <span className="text-[10px] font-mono text-rose-400 px-2 py-1 rounded-sm bg-rose-950/40 border border-rose-800/50 whitespace-nowrap">
+                    Risk: -${calculatedRisk.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Position Size & Multiplier */}
+            <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] sm:items-center gap-2 py-2 border-b border-zinc-800/60">
+              <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+                <Layers size={13} className="text-zinc-500" /> 
+                {marketType === 'futures' ? 'Contracts' : 'Lots'}
+              </span>
+              <div className="flex items-center gap-2">
+                <Input 
+                  type="number"
+                  step="0.01"
+                  {...form.register('position_size')}
+                  className="border-zinc-800 bg-zinc-900/80 rounded-sm h-8 text-xs font-mono font-bold text-zinc-100 w-24"
+                />
+                {multiplier > 1 && (
+                  <span className="text-[10px] font-mono text-zinc-400 px-2 py-1 rounded-sm bg-zinc-900 border border-zinc-800">
+                    ${multiplier}/pt multiplier
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Outcome Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] sm:items-center gap-2 py-2 border-b border-zinc-800/60">
+              <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+                {form.watch('status') === 'win' ? (
+                  <CheckCircle2 size={13} className="text-emerald-500" />
+                ) : (
+                  <XCircle size={13} className="text-rose-500" />
+                )} 
+                Outcome
+              </span>
+              <Select 
+                value={form.watch('status')}
+                onValueChange={(v) => form.setValue('status', v as any)}
+              >
+                <SelectTrigger className="border-zinc-800 bg-zinc-900/80 rounded-sm h-8 text-xs font-mono font-bold text-zinc-100">
+                  <SelectValue placeholder="Select outcome" />
+                </SelectTrigger>
+                <SelectContent className="border-zinc-800 bg-zinc-900 font-mono text-xs">
+                  <SelectItem value="open">OPEN</SelectItem>
+                  <SelectItem value="win" className="text-emerald-400">WIN</SelectItem>
+                  <SelectItem value="loss" className="text-rose-400">LOSS</SelectItem>
+                  <SelectItem value="breakeven">BREAKEVEN</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* P/L & R:R Ratio */}
+            <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] sm:items-center gap-2 py-2 border-b border-zinc-800/60">
+              <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+                <DollarSign size={13} className="text-zinc-500" /> Net P/L
+              </span>
+              <div className="flex items-center gap-3">
+                <Input 
+                  type="number"
+                  step="0.01"
+                  {...form.register('pnl')}
+                  className={cn(
+                    "border-zinc-800 bg-zinc-900/80 rounded-sm h-8 text-xs font-mono font-bold transition-colors w-32",
+                    form.watch('pnl') > 0 ? "text-emerald-400" : form.watch('pnl') < 0 ? "text-rose-400" : "text-zinc-100"
+                  )}
+                />
+                {exit && exit !== 0 && (
+                  <span className={cn(
+                    "text-[10px] font-mono px-2 py-1 rounded-sm border",
+                    Number(rrRatio) >= 2 
+                      ? "bg-emerald-950/40 text-emerald-400 border-emerald-800/50" 
+                      : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                  )}>
+                    R:R {rrRatio}R
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Estimated Fees */}
+            <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] sm:items-center gap-2 pt-2">
+              <span className="text-xs text-zinc-500 flex items-center gap-1.5">
+                <Plus size={13} className="text-zinc-600" /> Roundtrip Fee
+              </span>
               <Input 
                 type="number"
                 step="0.01"
-                {...form.register('position_size')}
-                className="border-none focus-visible:ring-0 px-0 h-7 text-sm bg-transparent font-bold text-foreground w-24"
+                disabled
+                {...form.register('fees')}
+                className="border-zinc-800/40 bg-zinc-900/40 rounded-sm h-8 text-xs font-mono text-zinc-500 cursor-not-allowed w-28"
               />
-              
-              {/* Position Mode Indicator */}
-              <div className={cn(
-                "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
-                marketType === 'futures' 
-                  ? "bg-primary/5 text-primary border-primary/20" 
-                  : "bg-indigo-500/5 text-indigo-400 border-indigo-500/20"
-              )}>
-                {marketType === 'futures' ? 'Contracts' : 'Lots'}
-              </div>
             </div>
-
-            {multiplier > 1 && (
-              <Badge variant="outline" className="text-[10px] h-5 bg-muted/50 border-border font-medium text-muted-foreground uppercase px-2">
-                {assetInfo ? (
-                  `$${multiplier}/pt multiplier (${assetInfo.name})`
-                ) : (
-                  `$${multiplier}/pt multiplier detected`
-                )}
-              </Badge>
-            )}
           </div>
-        </PropertyItem>
-
-        <PropertyItem label="Outcome" icon={form.watch('status') === 'win' ? CheckCircle2 : XCircle}>
-          <Select 
-            onValueChange={(v) => form.setValue('status', v as any)} 
-            defaultValue="open"
-          >
-            <SelectTrigger className="border-none focus:ring-0 p-0 h-7 text-sm bg-transparent shadow-none font-bold text-foreground">
-              <SelectValue placeholder="Select outcome" />
-            </SelectTrigger>
-            <SelectContent className="border-border shadow-2xl rounded-xl bg-popover">
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="win" className="text-emerald-500 font-bold">Win</SelectItem>
-              <SelectItem value="loss" className="text-rose-500 font-bold">Loss</SelectItem>
-              <SelectItem value="breakeven">Breakeven</SelectItem>
-            </SelectContent>
-          </Select>
-        </PropertyItem>
-
-        <PropertyItem label="P/L Amount" icon={DollarSign}>
-          <div className="flex items-center justify-between w-full">
-            <Input 
-              type="number"
-              step="0.01"
-              {...form.register('pnl')}
-              className={cn(
-                "border-none focus-visible:ring-0 px-0 h-7 text-sm font-extrabold bg-transparent w-full transition-colors",
-                form.watch('pnl') > 0 ? "text-emerald-500" : form.watch('pnl') < 0 ? "text-rose-500" : "text-foreground"
-              )}
-            />
-            {exit && exit !== 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
-                  R:R
-                </span>
-                <Badge className={cn(
-                  "h-5 text-[10px] font-bold px-2 rounded-lg",
-                  Number(rrRatio) >= 2 ? "bg-emerald-500/10 text-emerald-500 border-none" : "bg-muted text-muted-foreground border-none"
-                )} variant="outline">
-                  {rrRatio}R
-                </Badge>
-              </div>
-            )}
-          </div>
-        </PropertyItem>
-
-        <PropertyItem label="Estimated Fees" icon={Plus}>
-          <Input 
-            type="number"
-            step="0.01"
-            disabled
-            {...form.register('fees')}
-            className="border-none focus-visible:ring-0 px-0 h-7 text-sm bg-transparent font-bold text-foreground opacity-50 cursor-not-allowed"
-          />
-        </PropertyItem>
-      </form>
-
-      <div className="mt-12 group p-8 bg-white/70 dark:bg-muted/20 rounded-3xl border border-zinc-950/5 dark:border-border shadow-sm dark:shadow-none backdrop-blur-[20px] transition-all hover:border-zinc-300 dark:hover:border-border/80">
-        <div className="flex items-center gap-2 mb-6 text-zinc-950 dark:text-white">
-          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-            <Activity size={18} className="text-primary text-primary-700 dark:text-primary" />
-          </div>
-          <h2 className="text-xl font-black tracking-tight uppercase">Reflections & Notes</h2>
         </div>
-        <Textarea 
-          {...form.register('notes')}
-          placeholder="Start typing your reflection here... what did you see on the charts? Were you disciplined today?"
-          className="min-h-[300px] border-none focus-visible:ring-0 p-0 text-[16px] leading-relaxed resize-none bg-transparent placeholder:text-zinc-300 dark:placeholder:text-muted-foreground/30 font-medium text-zinc-950 dark:text-white"
-        />
 
-        {/* Image Upload Section */}
-        <div className="mt-10 pt-10 border-t border-zinc-950/5 dark:border-border/50">
-          <div className="flex items-center justify-between mb-6">
+        {/* COLUMN 2: Qualitative Analysis & Screenshots */}
+        <div className="rounded-md border border-zinc-800/80 bg-zinc-950/50 p-6 space-y-6 flex flex-col">
+          {/* Notes Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                <ImageIcon size={18} className="text-indigo-700 dark:text-indigo-400" />
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <h2 className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-300">
+                Qualitative Reflections & Notes
+              </h2>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-500">POST_MORTEM</span>
+          </div>
+
+          {/* Taller Textarea */}
+          <Textarea 
+            {...form.register('notes')}
+            placeholder="Type your execution post-mortem here... What market structure did you observe? What was the liquidity state? Was execution disciplined or emotional?"
+            className="min-h-[220px] rounded-sm border border-zinc-800 bg-zinc-900/70 p-3 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-1 focus-visible:ring-emerald-500 resize-none leading-relaxed"
+          />
+
+          {/* Screenshots Section */}
+          <div className="space-y-3 pt-2 border-t border-zinc-800/80">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ImageIcon size={14} className="text-zinc-400" />
+                <span className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-300">
+                  Chart Screenshots
+                </span>
               </div>
-              <h2 className="text-xl font-black tracking-tight text-zinc-950 dark:text-white uppercase">Chart Screenshots</h2>
+              <span className="text-[10px] font-mono text-zinc-500 px-2 py-0.5 rounded-sm bg-zinc-900 border border-zinc-800">
+                {files.length} / 13 Images
+              </span>
             </div>
-            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 dark:bg-muted px-2 py-1 rounded-md border border-zinc-200 dark:border-transparent">
-              {files.length} / 13 Images
-            </span>
-          </div>
 
-          <div 
-            onClick={() => fileInputRef.current?.click()}
-            className={cn(
-              "border-2 border-dashed border-zinc-950/5 dark:border-border rounded-3xl p-12 text-center transition-all cursor-pointer group hover:border-primary/50 hover:bg-primary/5",
-              files.length >= 13 && "opacity-50 pointer-events-none"
-            )}
-          >
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              multiple 
-              accept="image/*" 
-              className="hidden" 
-            />
-            <div className="w-16 h-16 rounded-2xl bg-zinc-50 dark:bg-muted flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <Upload size={24} className="text-zinc-400 group-hover:text-primary transition-colors" />
+            {/* Dropzone */}
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "border border-dashed border-zinc-800 hover:border-zinc-700 bg-zinc-900/40 rounded-sm p-6 text-center transition-colors cursor-pointer group",
+                files.length >= 13 && "opacity-50 pointer-events-none"
+              )}
+            >
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                multiple 
+                accept="image/*" 
+                className="hidden" 
+              />
+              <Upload size={20} className="text-zinc-500 group-hover:text-emerald-400 mx-auto mb-2 transition-colors" />
+              <p className="text-xs font-mono font-medium text-zinc-300">
+                Click to attach chart captures or drag & drop
+              </p>
+              <p className="text-[10px] font-mono text-zinc-600 mt-1">PNG, JPG, WEBP up to 5MB</p>
             </div>
-            <p className="text-zinc-950 dark:text-white font-black mb-1">Click to upload or drag and drop</p>
-            <p className="text-zinc-500 text-sm font-medium">PNG, JPG, WEBP up to 5MB (Max 13)</p>
-          </div>
 
-          {previews.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-8">
-              {previews.map((preview, index) => (
-                <div key={index} className="relative group aspect-video rounded-2xl overflow-hidden border border-border shadow-sm">
-                  <img 
-                    src={preview} 
-                    alt={`Preview ${index}`} 
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            {/* Previews */}
+            {previews.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
+                {previews.map((preview, index) => (
+                  <div key={index} className="relative group aspect-video rounded-sm overflow-hidden border border-zinc-800 bg-zinc-900">
+                    <img 
+                      src={preview} 
+                      alt={`Preview ${index}`} 
+                      className="w-full h-full object-cover"
+                    />
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         removeFile(index);
                       }}
-                      className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 transition-transform shadow-xl"
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-rose-400 hover:text-rose-300"
                     >
-                      <X size={18} />
+                      <X size={16} />
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </>
+    </form>
   );
 };
 

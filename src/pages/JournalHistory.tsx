@@ -36,10 +36,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+
 import { 
   Select, 
   SelectContent, 
@@ -68,6 +65,24 @@ export const JournalHistory = () => {
   useEffect(() => {
     setHasAIKey(isAIActive());
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedTrade) {
+        setSelectedTrade(null);
+      }
+    };
+    if (selectedTrade) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedTrade]);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -432,189 +447,194 @@ export const JournalHistory = () => {
         </div>
       </div>
 
-      <Dialog open={!!selectedTrade} onOpenChange={(open) => !open && setSelectedTrade(null)}>
-        <DialogContent className="max-w-[95vw] lg:max-w-6xl h-[90vh] max-h-[90vh] bg-zinc-950/95 border-white/10 rounded-[2.5rem] shadow-[0_0_50px_-12px_rgba(0,0,0,0.8)] p-0 overflow-hidden outline-none ring-0 backdrop-blur-xl">
-          {selectedTrade && (
-            <div className="flex flex-col lg:grid lg:grid-cols-12 h-full overflow-y-auto lg:overflow-hidden scrollbar-thin scrollbar-thumb-zinc-700/30">
-              {/* Left Column: System Data Sidebar */}
-              <aside className="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-white/5 bg-white/[0.02] flex flex-col lg:h-full lg:overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800/50">
-                <header className="p-8 md:p-10 border-b border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent shrink-0">
-                  <div className="flex items-center justify-between mb-8">
-                    <Badge className={cn(
-                      "uppercase tracking-[0.2em] text-[10px] py-1.5 px-5 rounded-full font-black border-none",
-                      selectedTrade.pnl > 0 ? "bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]" : 
-                      selectedTrade.pnl < 0 ? "bg-rose-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.3)]" : 
-                      "bg-zinc-500 text-white"
+      {/* Trade Details Modal */}
+      {selectedTrade && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedTrade(null);
+          }}
+        >
+          <div className="relative flex w-full max-w-6xl max-h-[90vh] bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
+            {/* Absolute Close Button */}
+            <button 
+              onClick={() => setSelectedTrade(null)}
+              className="absolute top-4 right-4 z-50 p-2 bg-zinc-900 border border-zinc-800 rounded-md text-zinc-400 hover:text-white"
+              title="Close (Esc)"
+            >
+              <X size={16} />
+            </button>
+
+            {/* Left Pane */}
+            <div className="w-[350px] shrink-0 border-r border-zinc-800 bg-zinc-950/50 p-6 flex flex-col overflow-y-auto">
+              <header className="pb-6 border-b border-zinc-800 shrink-0">
+                <div className="flex items-center justify-between mb-4">
+                  <Badge className={cn(
+                    "uppercase tracking-wider text-[10px] py-1 px-3 rounded-sm font-mono font-bold border",
+                    selectedTrade.pnl > 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : 
+                    selectedTrade.pnl < 0 ? "bg-rose-500/10 text-rose-400 border-rose-500/30" : 
+                    "bg-zinc-800 text-zinc-400 border-zinc-700"
+                  )}>
+                    {selectedTrade.pnl > 0 ? 'WIN' : selectedTrade.pnl < 0 ? 'LOSS' : 'BREAKEVEN'}
+                  </Badge>
+                </div>
+
+                <div className="space-y-1">
+                  <h2 className="text-4xl font-mono font-bold text-white tracking-tight leading-none uppercase">
+                    {selectedTrade.ticker}
+                  </h2>
+                  <div className="flex items-center gap-2 text-zinc-500 mt-2 font-mono text-xs">
+                    <Calendar size={13} className="text-zinc-500" />
+                    <span className="uppercase tracking-wider">
+                      {formatDate(selectedTrade.trade_date)}
+                    </span>
+                  </div>
+                </div>
+              </header>
+
+              <div className="py-6 space-y-3 flex-1">
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 block">Net Realized P/L</span>
+                  <span className={cn(
+                    "text-2xl font-mono font-bold tracking-tight",
+                    selectedTrade.pnl > 0 ? "text-emerald-400" : selectedTrade.pnl < 0 ? "text-rose-400" : "text-zinc-300"
+                  )}>
+                    {formatCurrency(selectedTrade.pnl)}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-3">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 block">Efficiency</span>
+                    <span className="text-base font-mono font-bold text-zinc-200">{calculateRR(selectedTrade)}R</span>
+                  </div>
+
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-3">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 block">Side</span>
+                    <span className={cn(
+                      "text-base font-mono font-bold uppercase",
+                      selectedTrade.direction === 'long' ? "text-emerald-400" : "text-rose-400"
                     )}>
-                      {selectedTrade.pnl > 0 ? 'WIN' : selectedTrade.pnl < 0 ? 'LOSS' : 'BREAKEVEN'}
-                    </Badge>
-                    <button 
-                      onClick={() => setSelectedTrade(null)}
-                      className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-all border border-white/5"
-                    >
-                      <X size={20} />
-                    </button>
+                      {selectedTrade.direction}
+                    </span>
                   </div>
 
-                  <div className="space-y-1">
-                    <h2 className="text-6xl md:text-7xl font-black text-white tracking-tighter leading-none uppercase">
-                      {selectedTrade.ticker}
-                    </h2>
-                    <div className="flex items-center gap-3 text-zinc-500 mt-4">
-                      <Calendar size={14} className="opacity-50" />
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] opacity-60">
-                        {formatDate(selectedTrade.trade_date)}
-                      </span>
-                    </div>
-                  </div>
-                </header>
-
-                <div className="p-8 md:p-10 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2 bg-white/[0.03] border border-white/10 rounded-2xl p-6 transition-all hover:bg-white/[0.05] hover:border-white/20">
-                      <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-2 block">Net Realized P/L</span>
-                      <span className={cn(
-                        "text-3xl font-black tracking-tighter",
-                        selectedTrade.pnl > 0 ? "text-emerald-400" : "text-rose-400"
-                      )}>
-                        {formatCurrency(selectedTrade.pnl)}
-                      </span>
-                    </div>
-
-                    <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 transition-all hover:bg-white/[0.05] hover:border-white/20">
-                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1 block">Efficiency</span>
-                      <span className="text-xl font-black text-zinc-200">{calculateRR(selectedTrade)}R</span>
-                    </div>
-
-                    <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 transition-all hover:bg-white/[0.05] hover:border-white/20">
-                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1 block">Side</span>
-                      <span className={cn(
-                        "text-xl font-black uppercase",
-                        selectedTrade.direction === 'long' ? "text-emerald-400" : "text-rose-400"
-                      )}>
-                        {selectedTrade.direction}
-                      </span>
-                    </div>
-
-                    <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 transition-all hover:bg-white/[0.05] hover:border-white/20">
-                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1 block">Volume</span>
-                      <span className="text-lg font-black text-zinc-200">
-                        {selectedTrade.position_size} <span className="text-[10px] opacity-40 uppercase">{selectedTrade.size_type || 'units'}</span>
-                      </span>
-                    </div>
-
-                    <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 transition-all hover:bg-white/[0.05] hover:border-white/20">
-                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1 block">Asset</span>
-                      <span className="text-lg font-black text-zinc-400 tracking-[0.1em] uppercase">
-                        {selectedTrade.market_type || getMarketTypeFromTicker(selectedTrade.ticker)}
-                      </span>
-                    </div>
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-3">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 block">Volume</span>
+                    <span className="text-base font-mono font-bold text-zinc-200">
+                      {selectedTrade.position_size} <span className="text-[10px] font-mono text-zinc-500 uppercase">{selectedTrade.size_type || 'units'}</span>
+                    </span>
                   </div>
 
-                  <div className="pt-6">
-                    <div className="bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-2xl p-6 group hover:border-indigo-500/40 transition-all">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">System Integrity</span>
-                      </div>
-                      <p className="text-[12px] font-medium text-indigo-300/60 leading-relaxed">
-                        Data point successfully encrypted and synchronized with terminal clusters.
-                      </p>
-                    </div>
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-3">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 block">Asset</span>
+                    <span className="text-base font-mono font-bold text-zinc-300 uppercase truncate block">
+                      {selectedTrade.market_type || getMarketTypeFromTicker(selectedTrade.ticker)}
+                    </span>
                   </div>
                 </div>
-              </aside>
 
-              {/* Right Column: Evidence & Narrative Main Section */}
-              <main className="lg:col-span-8 flex flex-col h-full bg-zinc-950 lg:overflow-hidden shadow-[-20px_0_40px_rgba(0,0,0,0.3)]">
-                <div className="flex-1 lg:overflow-y-auto p-8 md:p-12 space-y-16 scrollbar-thin scrollbar-thumb-zinc-800/80">
-                  {/* Narrative Section */}
-                  <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="w-12 h-12 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white shadow-xl">
-                        <MessageSquare size={20} />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black tracking-tighter text-white uppercase">Execution Narrative</h3>
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Internal Intelligence Transcript</p>
-                      </div>
+                <div className="pt-2">
+                  <div className="bg-zinc-900/40 border border-zinc-800 rounded-md p-3.5">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest">System Telemetry</span>
                     </div>
-                    
-                    <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-10 min-h-[200px] shadow-2xl relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500/40" />
-                      {selectedTrade.notes ? (
-                        <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap text-[17px] font-medium opacity-90 max-w-3xl selection:bg-indigo-500/30">
-                          {selectedTrade.notes}
-                        </p>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-10 text-center opacity-20">
-                          <History size={48} className="mb-4" />
-                          <p className="text-xs font-black uppercase tracking-[0.4em]">No cognitive narrative logged</p>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-
-                  {/* Visual Evidence Gallery */}
-                  {selectedTrade.image_urls && selectedTrade.image_urls.length > 0 && (
-                    <section className="animate-in fade-in slide-in-from-bottom-8 duration-800">
-                      <div className="flex items-center gap-4 mb-8">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-xl">
-                          <ImageIcon size={20} />
-                        </div>
-                        <div>
-                          <h3 className="text-2xl font-black tracking-tighter text-white uppercase">Visual Evidence</h3>
-                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">High-Resolution Chart Captures</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {selectedTrade.image_urls.map((url, i) => (
-                          <div key={i} className="aspect-video rounded-3xl overflow-hidden border border-white/5 group cursor-zoom-in shadow-2xl transition-all hover:border-white/20">
-                            <img 
-                              src={url} 
-                              alt={`Evidence ${i + 1}`} 
-                              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Interactive Execution Candlestick Chart */}
-                  <section className="animate-in fade-in slide-in-from-bottom-8 duration-800 space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-xl">
-                        <BarChart3 size={20} />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black tracking-tighter text-white uppercase">Execution Blueprint</h3>
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Interactive OHLC Candlestick Engine</p>
-                      </div>
-                    </div>
-                    <div className="h-[360px] min-h-[360px]">
-                      <TradeExecutionChart 
-                        entryPrice={selectedTrade.entry_price}
-                        exitPrice={selectedTrade.exit_price}
-                        stopLoss={selectedTrade.stop_loss}
-                        ticker={selectedTrade.ticker}
-                        direction={selectedTrade.direction}
-                        pnl={selectedTrade.pnl}
-                        height={360}
-                      />
-                    </div>
-                  </section>
-
-                  {/* AI Diagnostic v5.0 Live Behavioral & Risk Audit */}
-                  <section className="animate-in fade-in slide-in-from-bottom-10 duration-1000 pb-12">
-                    <AIDiagnosticModal trade={selectedTrade} asModal={false} />
-                  </section>
+                    <p className="text-xs font-mono text-zinc-400 leading-relaxed">
+                      Execution synchronized via terminal clusters. Cryptographically audited.
+                    </p>
+                  </div>
                 </div>
-              </main>
+              </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
+            {/* Right Pane */}
+            <div className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent space-y-8">
+              {/* Narrative Section */}
+              <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300">
+                    <MessageSquare size={14} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Execution Narrative</h3>
+                    <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Internal Intelligence Transcript</p>
+                  </div>
+                </div>
+                
+                <div className="bg-zinc-900/40 border border-zinc-800 rounded-md p-4 min-h-[120px] relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/60" />
+                  {selectedTrade.notes ? (
+                    <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap font-sans max-w-3xl">
+                      {selectedTrade.notes}
+                    </p>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-6 text-center text-zinc-600">
+                      <History size={28} className="mb-2" />
+                      <p className="text-xs font-mono uppercase tracking-widest">No cognitive narrative logged</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Visual Evidence Gallery */}
+              {selectedTrade.image_urls && selectedTrade.image_urls.length > 0 && (
+                <section className="animate-in fade-in slide-in-from-bottom-4 duration-400">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300">
+                      <ImageIcon size={14} />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Visual Evidence</h3>
+                      <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">High-Resolution Chart Captures</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {selectedTrade.image_urls.map((url, i) => (
+                      <div key={i} className="aspect-video rounded-md overflow-hidden border border-zinc-800 group cursor-zoom-in transition-all hover:border-zinc-700">
+                        <img 
+                          src={url} 
+                          alt={`Evidence ${i + 1}`} 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Interactive Execution Candlestick Chart */}
+              <section className="animate-in fade-in slide-in-from-bottom-6 duration-500 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300">
+                    <BarChart3 size={14} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Execution Blueprint</h3>
+                    <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Interactive OHLC Candlestick Engine</p>
+                  </div>
+                </div>
+                <div className="h-[360px] min-h-[360px]">
+                  <TradeExecutionChart 
+                    entryPrice={selectedTrade.entry_price}
+                    exitPrice={selectedTrade.exit_price}
+                    stopLoss={selectedTrade.stop_loss}
+                    ticker={selectedTrade.ticker}
+                    direction={selectedTrade.direction}
+                    pnl={selectedTrade.pnl}
+                    height={360}
+                  />
+                </div>
+              </section>
+
+              {/* AI Diagnostic v5.0 Live Behavioral & Risk Audit */}
+              <section className="animate-in fade-in slide-in-from-bottom-8 duration-600 pb-4">
+                <AIDiagnosticModal trade={selectedTrade} asModal={false} />
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
