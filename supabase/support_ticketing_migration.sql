@@ -143,13 +143,12 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON public.support_tickets(
 CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON public.support_tickets(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_updated_at ON public.support_tickets(updated_at DESC);
 
--- 6. Create ticket_messages Table
+-- 6. Create ticket_messages Table (id, ticket_id, sender_id, content, created_at)
 CREATE TABLE IF NOT EXISTS public.ticket_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   ticket_id UUID REFERENCES public.support_tickets(id) ON DELETE CASCADE NOT NULL,
-  sender_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  message TEXT NOT NULL,
-  is_staff BOOLEAN DEFAULT FALSE NOT NULL,
+  sender_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
@@ -158,15 +157,21 @@ CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket_id ON public.ticket_messag
 CREATE INDEX IF NOT EXISTS idx_ticket_messages_created_at ON public.ticket_messages(created_at ASC);
 
 -- 7. Trigger to bump support_tickets.updated_at on new message
+-- Staff authorization is evaluated via profiles.role
 CREATE OR REPLACE FUNCTION public.handle_ticket_message_inserted()
 RETURNS TRIGGER AS $$
+DECLARE
+  sender_role TEXT;
 BEGIN
+  -- Determine role of sender from profiles table
+  SELECT role INTO sender_role FROM public.profiles WHERE id = NEW.sender_id;
+
   UPDATE public.support_tickets
   SET 
     updated_at = NOW(),
     -- If ticket was closed or resolved and user sends a message, reopen to 'in_progress'
     status = CASE 
-      WHEN status IN ('resolved', 'closed') AND NEW.is_staff = FALSE THEN 'in_progress'
+      WHEN status IN ('resolved', 'closed') AND COALESCE(sender_role, 'user') NOT IN ('admin', 'moderator') THEN 'in_progress'
       ELSE status
     END
   WHERE id = NEW.ticket_id;

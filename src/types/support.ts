@@ -35,8 +35,15 @@ export interface TicketMessage {
   id: string;
   ticket_id: string;
   sender_id: string | null;
-  message: string;
-  is_staff: boolean;
+  content: string;
+  message?: string;
+  sender?: UserProfileSummary | {
+    id?: string;
+    full_name?: string | null;
+    display_name?: string | null;
+    role?: string | null;
+    avatar_url?: string | null;
+  } | null;
   created_at: string;
   is_optimistic?: boolean;
 }

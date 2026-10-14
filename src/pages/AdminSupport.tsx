@@ -149,15 +149,38 @@ export const AdminSupport: React.FC = () => {
     const fetchTicketDetails = async () => {
       setIsLoadingMessages(true);
       try {
-        // Fetch messages
+        // Fetch messages with joined sender profile
         const { data: msgData, error: msgError } = await supabase
           .from('ticket_messages')
-          .select('*')
+          .select('id, ticket_id, sender_id, content, created_at, sender:profiles(id, full_name, display_name, role, avatar_url)')
           .eq('ticket_id', activeTicket.id)
           .order('created_at', { ascending: true });
 
         if (!msgError && msgData) {
-          setMessages(msgData as TicketMessage[]);
+          const normalized = msgData.map((m: any) => ({
+            ...m,
+            content: m.content || m.message || '',
+            message: m.content || m.message || '',
+          }));
+          setMessages(normalized as TicketMessage[]);
+        } else if (msgError) {
+          console.warn('Supabase ticket_messages join error:', msgError.message);
+          // Fallback query without join
+          const { data: fallbackData } = await supabase
+            .from('ticket_messages')
+            .select('id, ticket_id, sender_id, content, created_at')
+            .eq('ticket_id', activeTicket.id)
+            .order('created_at', { ascending: true });
+
+          if (fallbackData) {
+            setMessages(
+              fallbackData.map((m: any) => ({
+                ...m,
+                content: m.content || m.message || '',
+                message: m.content || m.message || '',
+              })) as TicketMessage[]
+            );
+          }
         }
 
         // Fetch User profile details
@@ -228,7 +251,15 @@ export const AdminSupport: React.FC = () => {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'ticket_messages' },
         (payload) => {
-          const newMsg = payload.new as TicketMessage;
+          const raw = payload.new as any;
+          const newMsg: TicketMessage = {
+            id: raw.id,
+            ticket_id: raw.ticket_id,
+            sender_id: raw.sender_id,
+            content: raw.content || raw.message || '',
+            message: raw.content || raw.message || '',
+            created_at: raw.created_at,
+          };
 
           // If the message belongs to current active ticket
           if (activeTicket && newMsg.ticket_id === activeTicket.id) {
@@ -236,13 +267,34 @@ export const AdminSupport: React.FC = () => {
               if (prev.some((m) => m.id === newMsg.id)) return prev;
               return [...prev, newMsg];
             });
+
+            // Fetch sender profile to determine role
+            if (newMsg.sender_id) {
+              (async () => {
+                try {
+                  const { data: prof } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, display_name, role, avatar_url')
+                    .eq('id', newMsg.sender_id!)
+                    .single();
+                  if (prof) {
+                    setMessages((prev) =>
+                      prev.map((m) => (m.id === newMsg.id ? { ...m, sender: prof } : m))
+                    );
+                  }
+                } catch (e) {
+                  console.warn('Error fetching message sender profile:', e);
+                }
+              })();
+            }
           }
 
-          // If message is from user (not staff), play sound and alert staff
-          if (!newMsg.is_staff) {
+          // If message is from customer (not the current staff user), alert staff
+          if (newMsg.sender_id !== user?.id) {
             playSupportSound('message');
+            const preview = newMsg.content || newMsg.message || '';
             toast('User Replied in Support', {
-              description: newMsg.message.slice(0, 60) + '...',
+              description: preview.slice(0, 60) + (preview.length > 60 ? '...' : ''),
               icon: '💬',
             });
           }
@@ -267,8 +319,12 @@ export const AdminSupport: React.FC = () => {
       id: 'staff-opt-' + Date.now(),
       ticket_id: activeTicket.id,
       sender_id: user?.id || null,
+      content: content,
       message: content,
-      is_staff: true,
+      sender: {
+        role: profile?.role || 'admin',
+        full_name: profile?.full_name || 'Desk Officer',
+      },
       created_at: new Date().toISOString(),
       is_optimistic: true,
     };
@@ -279,8 +335,7 @@ export const AdminSupport: React.FC = () => {
       const { error: msgErr } = await supabase.from('ticket_messages').insert({
         ticket_id: activeTicket.id,
         sender_id: user?.id,
-        message: content,
-        is_staff: true,
+        content: content,
       });
 
       if (msgErr) throw msgErr;
@@ -605,7 +660,12 @@ export const AdminSupport: React.FC = () => {
                   </div>
                 ) : (
                   messages.map((m) => {
-                    const isStaff = m.is_staff;
+                    const senderObj = Array.isArray(m.sender) ? m.sender[0] : m.sender;
+                    const senderRole = senderObj?.role;
+                    const isStaff =
+                      senderRole === 'admin' ||
+                      senderRole === 'moderator' ||
+                      m.sender_id === user?.id;
                     return (
                       <div
                         key={m.id}
@@ -639,7 +699,7 @@ export const AdminSupport: React.FC = () => {
                               : 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-100'
                           } ${m.is_optimistic ? 'opacity-70 italic' : ''}`}
                         >
-                          {m.message}
+                          {m.content || m.message}
                         </div>
                       </div>
                     );

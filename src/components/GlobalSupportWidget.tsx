@@ -167,20 +167,41 @@ export function GlobalSupportWidget() {
     }
   };
 
-  // Fetch messages for active ticket
+  // Fetch messages for active ticket with sender profile role
   const fetchMessages = async (ticketId: string) => {
     setIsLoadingMessages(true);
     try {
+      // Primary join query with sender profile role
       const { data, error } = await supabase
         .from('ticket_messages')
-        .select('*')
+        .select('id, ticket_id, sender_id, content, created_at, sender:profiles(id, full_name, display_name, role, avatar_url)')
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.warn('Supabase fetchMessages note:', error.message);
+        console.warn('Supabase fetchMessages join note:', error.message);
+        // Fallback query without join if relationship differs
+        const { data: rawData, error: rawError } = await supabase
+          .from('ticket_messages')
+          .select('id, ticket_id, sender_id, content, created_at')
+          .eq('ticket_id', ticketId)
+          .order('created_at', { ascending: true });
+
+        if (!rawError && rawData) {
+          const normalized = rawData.map((m: any) => ({
+            ...m,
+            content: m.content || m.message || '',
+            message: m.content || m.message || '',
+          }));
+          setMessages(normalized as TicketMessage[]);
+        }
       } else if (data) {
-        setMessages(data as TicketMessage[]);
+        const normalized = data.map((m: any) => ({
+          ...m,
+          content: m.content || m.message || '',
+          message: m.content || m.message || '',
+        }));
+        setMessages(normalized as TicketMessage[]);
       }
     } catch (err) {
       console.error('Error loading ticket messages:', err);
@@ -219,25 +240,52 @@ export function GlobalSupportWidget() {
           filter: `ticket_id=eq.${activeTicket.id}`,
         },
         (payload) => {
-          const newMsg = payload.new as TicketMessage;
+          const raw = payload.new as any;
+          const newMsg: TicketMessage = {
+            id: raw.id,
+            ticket_id: raw.ticket_id,
+            sender_id: raw.sender_id,
+            content: raw.content || raw.message || '',
+            message: raw.content || raw.message || '',
+            created_at: raw.created_at,
+          };
+
           setMessages((prev) => {
             // Avoid duplicate if optimistic message matches
             const exists = prev.some(
-              (m) => m.id === newMsg.id || (m.is_optimistic && m.message === newMsg.message)
+              (m) => m.id === newMsg.id || (m.is_optimistic && (m.content === newMsg.content || m.message === newMsg.message))
             );
             if (exists) {
               return prev.map((m) =>
-                m.is_optimistic && m.message === newMsg.message ? newMsg : m
+                m.is_optimistic && (m.content === newMsg.content || m.message === newMsg.message) ? newMsg : m
               );
             }
             return [...prev, newMsg];
           });
 
-          // Play sound and toast notification if message is from staff
-          if (newMsg.is_staff) {
+          // If message is from someone else (staff), query sender role, play sound & alert
+          if (newMsg.sender_id && newMsg.sender_id !== user?.id) {
+            (async () => {
+              try {
+                const { data: prof } = await supabase
+                  .from('profiles')
+                  .select('id, full_name, display_name, role, avatar_url')
+                  .eq('id', newMsg.sender_id!)
+                  .single();
+                if (prof) {
+                  setMessages((prev) =>
+                    prev.map((m) => (m.id === newMsg.id ? { ...m, sender: prof } : m))
+                  );
+                }
+              } catch (e) {
+                console.warn('Profile fetch note:', e);
+              }
+            })();
+
             playSupportSound('message');
+            const textPreview = newMsg.content || newMsg.message || '';
             toast('Staff Response Received', {
-              description: newMsg.message.slice(0, 75) + (newMsg.message.length > 75 ? '...' : ''),
+              description: textPreview.slice(0, 75) + (textPreview.length > 75 ? '...' : ''),
               icon: '💬',
             });
           }
@@ -288,8 +336,8 @@ export function GlobalSupportWidget() {
       id: crypto.randomUUID(),
       ticket_id: tempTicketId,
       sender_id: user?.id || null,
+      content: values.message.trim(),
       message: values.message.trim(),
-      is_staff: false,
       created_at: new Date().toISOString(),
     };
 
@@ -315,15 +363,14 @@ export function GlobalSupportWidget() {
 
         const insertedTicket = ticketData as SupportTicket;
 
-        // Insert initial message
+        // Insert initial message into ticket_messages using content column
         const { error: initialMsgError } = await supabase
           .from('ticket_messages')
           .insert({
             id: initialMessageRecord.id,
             ticket_id: insertedTicket.id,
             sender_id: user.id,
-            message: values.message.trim(),
-            is_staff: false,
+            content: values.message.trim(),
           });
 
         if (initialMsgError) {
@@ -379,8 +426,8 @@ export function GlobalSupportWidget() {
       id: 'opt-' + Date.now(),
       ticket_id: activeTicket.id,
       sender_id: user?.id || null,
+      content: msgContent,
       message: msgContent,
-      is_staff: false,
       created_at: new Date().toISOString(),
       is_optimistic: true,
     };
@@ -393,8 +440,7 @@ export function GlobalSupportWidget() {
         const { error } = await supabase.from('ticket_messages').insert({
           ticket_id: activeTicket.id,
           sender_id: user.id,
-          message: msgContent,
-          is_staff: false,
+          content: msgContent,
         });
 
         if (error) {
@@ -415,8 +461,9 @@ export function GlobalSupportWidget() {
             id: 'staff-' + Date.now(),
             ticket_id: activeTicket.id,
             sender_id: null,
+            content: 'Thank you for reaching BentoTrade Support. An institutional desk officer has logged your inquiry and is reviewing telemetry.',
             message: 'Thank you for reaching BentoTrade Support. An institutional desk officer has logged your inquiry and is reviewing telemetry.',
-            is_staff: true,
+            sender: { role: 'admin', full_name: 'Desk Officer' },
             created_at: new Date().toISOString(),
           };
           setMessages((prev) => [...prev, staffEcho]);
@@ -802,7 +849,12 @@ export function GlobalSupportWidget() {
                   </div>
                 ) : (
                   messages.map((m) => {
-                    const isStaffMsg = m.is_staff;
+                    const senderObj = Array.isArray(m.sender) ? m.sender[0] : m.sender;
+                    const senderRole = senderObj?.role;
+                    const isStaffMsg =
+                      senderRole === 'admin' ||
+                      senderRole === 'moderator' ||
+                      (m.sender_id ? m.sender_id !== user?.id : false);
                     return (
                       <div
                         key={m.id}
@@ -838,7 +890,7 @@ export function GlobalSupportWidget() {
                               : 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
                           } ${m.is_optimistic ? 'opacity-70 italic' : ''}`}
                         >
-                          {m.message}
+                          {m.content || m.message}
                         </div>
                       </div>
                     );
