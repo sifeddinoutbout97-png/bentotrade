@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Zap, Calendar as CalendarIcon, Filter, Clock, Globe, RefreshCcw, AlertTriangle, Menu, X, ArrowUpRight } from 'lucide-react';
+import { Zap, Calendar as CalendarIcon, Filter, Clock, Globe, RefreshCcw, AlertTriangle, Menu, X, ArrowUpRight, ChevronsDown } from 'lucide-react';
 import { useEconomicCalendar, EconomicEvent } from '@/hooks/useEconomicCalendar';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -154,6 +154,30 @@ export const MarketPulse = () => {
     };
   }, [events, currentTime]);
 
+  // Flash highlight state for UP NEXT jump
+  const [isFlashingUpNext, setIsFlashingUpNext] = useState(false);
+
+  // Auto-detection logic: Find the nearest upcoming event from the rendered events list
+  const upNextEvent = useMemo(() => {
+    const now = new Date();
+    return events.find(e => new Date(e.time) >= now) || null;
+  }, [events, currentTime]);
+
+  const handleUpNext = () => {
+    const target = document.getElementById('event-up-next');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      // Check mobile target if screen is compact
+      document.getElementById('event-up-next-mob')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    setIsFlashingUpNext(true);
+    setTimeout(() => {
+      setIsFlashingUpNext(false);
+    }, 1500);
+  };
+
   // Group events by local date and compute time-clustering for time blanking
   const groupedDateList = useMemo(() => {
     const groupsMap = new Map<string, { dateLabel: string; events: Array<EconomicEvent & { isFirstInTimeSlot: boolean; timeSlotFormatted: string }> }>();
@@ -283,17 +307,32 @@ export const MarketPulse = () => {
           </div>
         </div>
         
-        <button 
-          onClick={() => refresh()}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-white/70 dark:bg-card border border-zinc-200 dark:border-white/5 rounded-xl md:rounded-2xl shadow-sm hover:bg-zinc-50 dark:hover:bg-accent/50 transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-zinc-950 dark:text-white backdrop-blur-xl disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Manual refresh from Finnhub economic calendar"
-        >
-          <RefreshCcw size={12} className={cn("transition-transform duration-700 md:hidden", loading && "animate-spin text-primary")} />
-          <RefreshCcw size={14} className={cn("transition-transform duration-700 hidden md:block", loading && "animate-spin text-primary")} />
-          <span className="hidden sm:inline">{loading ? 'SYNCING...' : 'SYNC UPLINK'}</span>
-          <span className="sm:hidden">{loading ? 'SYNCING...' : 'SYNC'}</span>
-        </button>
+        <div className="flex items-center gap-2 md:gap-3">
+          <button 
+            onClick={handleUpNext}
+            disabled={!upNextEvent}
+            className={cn(
+              "px-3 py-1.5 text-xs font-mono font-medium tracking-wider uppercase rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5 shadow-sm",
+              !upNextEvent && "opacity-40 cursor-not-allowed hover:bg-emerald-500/10"
+            )}
+            title={upNextEvent ? `Jump to next upcoming release (${upNextEvent.event})` : 'All events in current range have passed'}
+          >
+            <ChevronsDown size={14} className={cn("transition-transform", upNextEvent && "animate-bounce")} />
+            <span>UP NEXT</span>
+          </button>
+
+          <button 
+            onClick={() => refresh()}
+            disabled={loading}
+            className="flex items-center gap-2 px-3.5 py-1.5 md:px-5 md:py-2.5 bg-white/70 dark:bg-card border border-zinc-200 dark:border-white/5 rounded-md shadow-sm hover:bg-zinc-50 dark:hover:bg-accent/50 transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-zinc-950 dark:text-white backdrop-blur-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Manual refresh from Finnhub economic calendar"
+          >
+            <RefreshCcw size={12} className={cn("transition-transform duration-700 md:hidden", loading && "animate-spin text-primary")} />
+            <RefreshCcw size={14} className={cn("transition-transform duration-700 hidden md:block", loading && "animate-spin text-primary")} />
+            <span className="hidden sm:inline">{loading ? 'SYNCING...' : 'SYNC UPLINK'}</span>
+            <span className="sm:hidden">{loading ? 'SYNCING...' : 'SYNC'}</span>
+          </button>
+        </div>
       </header>
 
       {/* Bento Grid */}
@@ -395,10 +434,9 @@ export const MarketPulse = () => {
                         <td colSpan={7} className="px-8 py-32 text-center text-zinc-500 italic">No events found.</td>
                       </tr>
                     ) : (
-                      <AnimatePresence mode="popLayout">
-                        {groupedDateList.map((group) => (
-                          <React.Fragment key={`desk-group-${group.dateKey}`}>
-                            {/* Full-width Institutional Date Header Row */}
+                      groupedDateList.map((group) => (
+                        <React.Fragment key={`desk-group-${group.dateKey}`}>
+                          {/* Full-width Institutional Date Header Row */}
                             <tr key={`desk-date-header-${group.dateKey}`}>
                               <td 
                                 colSpan={7} 
@@ -414,12 +452,14 @@ export const MarketPulse = () => {
                               const isPassed = eventMs < currentTime;
                               const isUpcoming = !isPassed;
                               const isNextCatalyst = isUpcoming && event.calendar_id === nextActiveCatalystId;
+                              const isUpNext = Boolean(upNextEvent && event.calendar_id === upNextEvent.calendar_id);
                               const isHighImpact = (event.impact || '').toLowerCase() === 'high';
                               const countdownLabel = formatCountdown(eventMs, currentTime);
 
                               return (
                                 <motion.tr 
                                   key={`desk-${event.calendar_id || idx}-${idx}`}
+                                  id={isUpNext ? "event-up-next" : undefined}
                                   initial={{ opacity: 0, y: 8 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, scale: 0.98 }}
@@ -432,7 +472,8 @@ export const MarketPulse = () => {
                                       ? "border-l-2 border-l-emerald-500 bg-emerald-950/20" 
                                       : isHighImpact && !isPassed 
                                         ? "hover:bg-red-950/20"
-                                        : "hover:bg-zinc-900/40"
+                                        : "hover:bg-zinc-900/40",
+                                    isUpNext && isFlashingUpNext && "ring-1 ring-emerald-500/60 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-all duration-300"
                                   )}
                                 >
                                   {/* Time & Real-Time Status Column (with Time Blanking) */}
@@ -549,8 +590,7 @@ export const MarketPulse = () => {
                               );
                             })}
                           </React.Fragment>
-                        ))}
-                      </AnimatePresence>
+                        ))
                     )}
                   </tbody>
                 </table>
@@ -592,12 +632,14 @@ export const MarketPulse = () => {
                           const isPassed = eventMs < currentTime;
                           const isUpcoming = !isPassed;
                           const isNextCatalyst = isUpcoming && event.calendar_id === nextActiveCatalystId;
+                          const isUpNext = Boolean(upNextEvent && event.calendar_id === upNextEvent.calendar_id);
                           const isHighImpact = (event.impact || '').toLowerCase() === 'high';
                           const countdownLabel = formatCountdown(eventMs, currentTime);
 
                           return (
                             <motion.div 
                               key={`mob-${event.calendar_id || idx}-${idx}`}
+                              id={isUpNext ? "event-up-next-mob" : undefined}
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: idx * 0.02 }}
@@ -608,7 +650,8 @@ export const MarketPulse = () => {
                                   : isNextCatalyst 
                                     ? "opacity-100 border-l-4 border-l-primary bg-primary/[0.05] dark:bg-primary/[0.08] border-zinc-950/10 dark:border-white/10 ring-1 ring-primary/30 shadow-md" 
                                     : "opacity-100 border-zinc-950/5 dark:border-white/5 bg-zinc-50/50 dark:bg-white/5",
-                                isHighImpact && !isPassed && !isNextCatalyst && "border-red-500/20"
+                                isHighImpact && !isPassed && !isNextCatalyst && "border-red-500/20",
+                                isUpNext && isFlashingUpNext && "ring-1 ring-emerald-500/60 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-all duration-300"
                               )}
                             >
                               {isHighImpact && !isPassed && (

@@ -23,12 +23,11 @@ export function generateInstitutionalEconomicEvents(fromStr?: string, toStr?: st
   monday.setDate(anchorDate.getDate() + diffToMonday);
   monday.setHours(0, 0, 0, 0);
 
-  // Helper to format ISO date string for given day offset and UTC time
+  // Helper to format ISO date string for given day offset from Monday and UTC time
   const createEventTime = (dayOffset: number, utcHour: number, utcMinute: number): string => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + dayOffset);
-    d.setUTCHours(utcHour, utcMinute, 0, 0);
-    return d.toISOString();
+    const utcMondayMs = Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate());
+    const eventMs = utcMondayMs + (dayOffset * 24 * 60 * 60 * 1000) + (utcHour * 60 * 60 * 1000) + (utcMinute * 60 * 1000);
+    return new Date(eventMs).toISOString();
   };
 
   const rawCatalog: Array<Omit<EconomicEvent, 'calendar_id' | 'time'> & { dayOffset: number; utcHour: number; utcMinute: number; idSuffix: string }> = [
@@ -362,7 +361,7 @@ export function generateInstitutionalEconomicEvents(fromStr?: string, toStr?: st
       idSuffix: 'nat_gas_storage'
     },
 
-    // --- FRIDAY (dayOffset: 4) - RETAIL SALES DAY ---
+    // --- FRIDAY (dayOffset: 4) - RETAIL SALES & CENTRAL BANK POLICY DAY ---
     {
       dayOffset: 4,
       utcHour: 3,
@@ -460,6 +459,78 @@ export function generateInstitutionalEconomicEvents(fromStr?: string, toStr?: st
       prev: 3.1,
       unit: '%',
       idSuffix: 'michigan_inflation'
+    },
+    {
+      dayOffset: 4,
+      utcHour: 15,
+      utcMinute: 15,
+      country: 'GB',
+      currency: 'GBP',
+      event: 'BOE Governor Bailey Speaks',
+      impact: 'high',
+      estimate: null,
+      actual: null,
+      prev: null,
+      unit: '',
+      idSuffix: 'boe_bailey_speaks'
+    },
+    {
+      dayOffset: 4,
+      utcHour: 16,
+      utcMinute: 0,
+      country: 'CA',
+      currency: 'CAD',
+      event: 'BOC Governor Macklem Speaks',
+      impact: 'high',
+      estimate: null,
+      actual: null,
+      prev: null,
+      unit: '',
+      idSuffix: 'boc_macklem_speaks'
+    },
+    {
+      dayOffset: 4,
+      utcHour: 17,
+      utcMinute: 0,
+      country: 'US',
+      currency: 'USD',
+      event: 'Fed Chair Powell Speaks',
+      impact: 'high',
+      estimate: null,
+      actual: null,
+      prev: null,
+      unit: '',
+      idSuffix: 'fed_powell_speaks'
+    },
+    {
+      dayOffset: 4,
+      utcHour: 18,
+      utcMinute: 30,
+      country: 'EU',
+      currency: 'EUR',
+      event: 'ECB President Lagarde Speaks',
+      impact: 'high',
+      estimate: null,
+      actual: null,
+      prev: null,
+      unit: '',
+      idSuffix: 'ecb_lagarde_speaks'
+    },
+
+    // --- SUNDAY (dayOffset: 6) - WEEKEND OVERNIGHT RELEASE ---
+    {
+      dayOffset: 6,
+      utcHour: 1,
+      utcMinute: 15,
+      country: 'CN',
+      currency: 'CNY',
+      event: 'PBOC Loan Prime Rate Decision',
+      impact: 'medium',
+      estimate: 3.35,
+      actual: null,
+      prev: 3.35,
+      unit: '%',
+      idSuffix: 'pboc_lpr'
     }
   ];
 
@@ -489,10 +560,12 @@ export function generateInstitutionalEconomicEvents(fromStr?: string, toStr?: st
   // Strict temporal filtering against fromStr and toStr
   return allEvents.filter((event) => {
     const d = new Date(event.time);
-    const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const localYmd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const utcYmd = event.time.split('T')[0];
     
-    if (fromStr && ymd < fromStr) return false;
-    if (toStr && ymd > toStr) return false;
-    return true;
+    const matchesLocal = (!fromStr || localYmd >= fromStr) && (!toStr || localYmd <= toStr);
+    const matchesUtc = (!fromStr || utcYmd >= fromStr) && (!toStr || utcYmd <= toStr);
+
+    return matchesLocal || matchesUtc;
   }).sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 }

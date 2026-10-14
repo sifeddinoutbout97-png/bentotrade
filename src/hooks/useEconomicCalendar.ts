@@ -99,7 +99,7 @@ export const useEconomicCalendar = () => {
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data.economicCalendar) && data.economicCalendar.length > 0) {
-            console.log(`[useEconomicCalendar] Successfully received ${data.economicCalendar.length} live events from Finnhub`);
+            console.log(`[useEconomicCalendar] Successfully received ${data.economicCalendar.length} economic calendar events (${data.source || 'feed'})`);
             fetchedEvents = data.economicCalendar.map((item: any, idx: number) => {
               // Parse time safely into ISO format
               let formattedTime = item.time || new Date().toISOString();
@@ -117,7 +117,7 @@ export const useEconomicCalendar = () => {
               const impact = impactRaw === 'med' ? 'medium' : impactRaw;
 
               return {
-                calendar_id: item.id ? String(item.id) : `finnhub-${country}-${idx}-${Date.parse(formattedTime) || idx}`,
+                calendar_id: item.calendar_id || (item.id ? String(item.id) : `finnhub-${country}-${idx}-${Date.parse(formattedTime) || idx}`),
                 country,
                 currency,
                 event: item.event || 'Macro Catalyst Release',
