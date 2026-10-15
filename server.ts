@@ -8,13 +8,66 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import dotenv from 'dotenv';
 import { generateInstitutionalEconomicEvents } from './src/data/mockEconomicEvents';
+import { connectBrokerAccount, syncBrokerTrades } from './src/services/brokerService';
 
 dotenv.config();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 
 app.use(express.json());
+
+/**
+ * POST /api/broker/connect
+ * Performs live handshake with MT5/MT4 broker gateway via MetaApi Cloud SDK.
+ */
+app.post('/api/broker/connect', async (req, res) => {
+  try {
+    const { login, password, server, platform, accountId, userId } = req.body;
+    console.log(`[Express /api/broker/connect] Request for platform=${platform}, server=${server}, account=${login || accountId}`);
+    const result = await connectBrokerAccount({
+      login: login || accountId,
+      password,
+      server,
+      platform,
+      accountId,
+      userId,
+    });
+    return res.json(result);
+  } catch (err: any) {
+    console.error('[Express /api/broker/connect] Error:', err);
+    return res.status(400).json({
+      success: false,
+      error: err?.message || 'Failed to establish handshake with broker gateway',
+    });
+  }
+});
+
+/**
+ * POST /api/broker/sync
+ * Synchronizes execution blotter and persists round-trip trades to Supabase ledger.
+ */
+app.post('/api/broker/sync', async (req, res) => {
+  try {
+    const { login, server, platform, accountId, userId, force } = req.body;
+    console.log(`[Express /api/broker/sync] Sync triggered for account=${login || accountId}, server=${server}`);
+    const result = await syncBrokerTrades({
+      login: login || accountId,
+      server,
+      platform,
+      accountId,
+      userId,
+      force,
+    });
+    return res.json(result);
+  } catch (err: any) {
+    console.error('[Express /api/broker/sync] Error:', err);
+    return res.status(400).json({
+      success: false,
+      error: err?.message || 'Failed to sync executions from broker gateway',
+    });
+  }
+});
 
 /**
  * GET /api/economic-calendar

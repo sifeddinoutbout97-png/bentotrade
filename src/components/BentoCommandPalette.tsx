@@ -24,7 +24,8 @@ import {
   ArrowRight,
   Flame,
   Calendar,
-  Sparkles
+  Sparkles,
+  UploadCloud
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -306,6 +307,17 @@ export const BentoCommandPalette: React.FC<BentoCommandPaletteProps> = ({
                       <span>Open Trade Execution Logger</span>
                     </div>
                     <span className="text-[10px] text-zinc-500">/journal</span>
+                  </Command.Item>
+
+                  <Command.Item
+                    onSelect={() => runCommand(() => navigate('/import'))}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 aria-selected:bg-emerald-500/15 aria-selected:text-emerald-400 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <UploadCloud size={15} className="text-emerald-400" />
+                      <span>Broker Data Sync (CSV Ingestion)</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500">/import</span>
                   </Command.Item>
 
                   <Command.Item

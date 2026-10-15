@@ -13,7 +13,8 @@ import {
   createTrade as apiCreateTrade, 
   deleteTrade as apiDeleteTrade, 
   deleteAllTrades as apiDeleteAllTrades, 
-  updateTrade as apiUpdateTrade 
+  updateTrade as apiUpdateTrade,
+  bulkCreateTrades as apiBulkCreateTrades
 } from '@/lib/trades';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -25,6 +26,7 @@ interface TradeContextType {
   refetchTrades: () => Promise<void>;
   setTrades: React.Dispatch<React.SetStateAction<Trade[]>>;
   createTrade: (trade: Omit<Trade, 'id' | 'created_at' | 'user_id'>) => Promise<Trade>;
+  bulkCreateTrades: (tradesList: Array<Omit<Trade, 'id' | 'created_at' | 'user_id'>>) => Promise<Trade[]>;
   deleteTrade: (id: string) => Promise<void>;
   deleteAllTrades: () => Promise<void>;
   updateTrade: (id: string, updates: Partial<Trade>) => Promise<void>;
@@ -227,6 +229,13 @@ export const TradeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await apiUpdateTrade(id, updates);
   }, []);
 
+  const bulkCreateTrades = useCallback(async (tradesList: Array<Omit<Trade, 'id' | 'created_at' | 'user_id'>>) => {
+    const createdTrades = await apiBulkCreateTrades(tradesList);
+    // Refresh trades state
+    await fetchTrades();
+    return createdTrades as Trade[];
+  }, [fetchTrades]);
+
   return (
     <TradeContext.Provider
       value={{
@@ -237,6 +246,7 @@ export const TradeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         refetchTrades: fetchTrades,
         setTrades,
         createTrade,
+        bulkCreateTrades,
         deleteTrade,
         deleteAllTrades,
         updateTrade,

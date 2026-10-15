@@ -16,6 +16,7 @@ import { Login } from '@/pages/Login';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import { AdminSupport } from '@/pages/AdminSupport';
 import { MarketPulse } from '@/pages/MarketPulse';
+import { ImportPage } from '@/pages/Import';
 import { NotFound } from '@/pages/NotFound';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -169,6 +170,8 @@ export default function App() {
                             <Route path="/journal" element={<Journal />} />
                             <Route path="/trades/new" element={<Journal />} />
                             <Route path="/journal-history" element={<JournalHistory />} />
+                            <Route path="/import" element={<ImportPage />} />
+                            <Route path="/broker-sync" element={<Navigate to="/import" replace />} />
                             <Route path="/ai-insights" element={<AiInsights />} />
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/market-pulse" element={<MarketPulse />} />

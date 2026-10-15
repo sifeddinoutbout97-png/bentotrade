@@ -36,7 +36,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ListFilter,
-  Grid
+  Grid,
+  UploadCloud
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -245,6 +246,14 @@ export const JournalHistory = () => {
               <span>[Calendar Heatmap View]</span>
             </button>
           </div>
+
+          <Link
+            to="/import"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold transition-all shadow-sm"
+          >
+            <UploadCloud size={14} />
+            <span>Broker Sync CSV</span>
+          </Link>
 
           {isAdmin && (
             <Button 

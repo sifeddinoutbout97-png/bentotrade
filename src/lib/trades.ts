@@ -140,3 +140,40 @@ export const updateTrade = async (id: string, updates: Partial<Trade>) => {
   });
 };
 
+export const bulkCreateTrades = async (tradesList: Array<Omit<Trade, 'id' | 'created_at' | 'user_id'>>) => {
+  return withAuthRetry(async () => {
+    const effectiveUserId = await ensureFreshSession();
+    
+    if (!effectiveUserId) {
+      throw new Error('User must be authenticated to log trades.');
+    }
+
+    const payload = tradesList.map(t => ({
+      ...t,
+      user_id: effectiveUserId,
+      created_at: new Date().toISOString()
+    }));
+
+    // Primary insertion into trades table to feed heatmap, blotter, and analytics
+    const { data, error } = await supabase
+      .from('trades')
+      .insert(payload)
+      .select();
+
+    if (error) {
+      console.error('Error during bulk trade insertion into trades:', error);
+      throw error;
+    }
+
+    // Attempt backup sync into journal_logs table if existing
+    try {
+      await supabase.from('journal_logs').insert(payload);
+    } catch (journalErr) {
+      console.info('journal_logs secondary ledger sync:', journalErr);
+    }
+
+    return data || [];
+  });
+};
+
+

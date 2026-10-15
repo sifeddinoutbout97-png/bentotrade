@@ -24,7 +24,8 @@ import {
   Menu,
   X,
   Command,
-  Download
+  Download,
+  UploadCloud
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -214,6 +215,7 @@ export const Sidebar = () => {
                     <NavItem to="/" icon={LayoutDashboard} label="Dashboard" onClick={closeMobile} />
                     <NavItem to="/journal" icon={BookOpenText} label="Trade Journal" onClick={closeMobile} />
                     <NavItem to="/journal-history" icon={History} label="Journal History" onClick={closeMobile} />
+                    <NavItem to="/import" icon={UploadCloud} label="Broker Sync" onClick={closeMobile} />
                   </div>
                 </div>
 
@@ -362,6 +364,7 @@ export const Sidebar = () => {
                 <NavItem to="/" icon={LayoutDashboard} label="Dashboard" isCollapsed={isCollapsed} />
                 <NavItem to="/journal" icon={BookOpenText} label="Trade Journal" isCollapsed={isCollapsed} />
                 <NavItem to="/journal-history" icon={History} label="Journal History" isCollapsed={isCollapsed} />
+                <NavItem to="/import" icon={UploadCloud} label="Broker Sync" isCollapsed={isCollapsed} />
               </div>
             </div>
 
