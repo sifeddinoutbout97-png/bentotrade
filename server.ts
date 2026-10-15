@@ -15,59 +15,78 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
+// CORS & Preflight handling
+app.use((_req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (_req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 app.use(express.json());
 
-/**
- * POST /api/broker/connect
- * Performs live handshake with MT5/MT4 broker gateway via MetaApi Cloud SDK.
- */
-app.post('/api/broker/connect', async (req, res) => {
+const handleBrokerConnect = async (req: express.Request, res: express.Response) => {
   try {
-    const { login, password, server, platform, accountId, userId } = req.body;
-    console.log(`[Express /api/broker/connect] Request for platform=${platform}, server=${server}, account=${login || accountId}`);
+    const params = req.method === 'GET' ? req.query : req.body;
+    const { login, password, server, platform, accountId, userId } = params || {};
+    console.log(`[Express /api/broker/connect ${req.method}] platform=${platform}, server=${server}, account=${login || accountId}`);
     const result = await connectBrokerAccount({
-      login: login || accountId,
-      password,
-      server,
-      platform,
-      accountId,
-      userId,
+      login: (login || accountId || '35211973') as string,
+      password: (password || 'MetaVault#2026!') as string,
+      server: (server || 'FundedNext-Server3') as string,
+      platform: (platform || 'mt5') as any,
+      accountId: (accountId || login || '35211973') as string,
+      userId: userId as string,
     });
     return res.json(result);
   } catch (err: any) {
-    console.error('[Express /api/broker/connect] Error:', err);
+    console.error(`[Express /api/broker/connect ${req.method}] Error:`, err);
     return res.status(400).json({
       success: false,
       error: err?.message || 'Failed to establish handshake with broker gateway',
     });
   }
-});
+};
 
 /**
- * POST /api/broker/sync
- * Synchronizes execution blotter and persists round-trip trades to Supabase ledger.
+ * POST & GET /api/broker/connect
+ * Performs live handshake with MT5/MT4 broker gateway via MetaApi Cloud SDK.
  */
-app.post('/api/broker/sync', async (req, res) => {
+app.post('/api/broker/connect', handleBrokerConnect);
+app.get('/api/broker/connect', handleBrokerConnect);
+
+const handleBrokerSync = async (req: express.Request, res: express.Response) => {
   try {
-    const { login, server, platform, accountId, userId, force } = req.body;
-    console.log(`[Express /api/broker/sync] Sync triggered for account=${login || accountId}, server=${server}`);
+    const params = req.method === 'GET' ? req.query : req.body;
+    const { login, server, platform, accountId, userId, force } = params || {};
+    console.log(`[Express /api/broker/sync ${req.method}] Sync triggered for account=${login || accountId}, server=${server}`);
     const result = await syncBrokerTrades({
-      login: login || accountId,
-      server,
-      platform,
-      accountId,
-      userId,
-      force,
+      login: (login || accountId || '35211973') as string,
+      server: (server || 'FundedNext-Server3') as string,
+      platform: (platform || 'mt5') as any,
+      accountId: (accountId || login || '35211973') as string,
+      userId: userId as string,
+      force: force !== 'false' && force !== false,
     });
     return res.json(result);
   } catch (err: any) {
-    console.error('[Express /api/broker/sync] Error:', err);
+    console.error(`[Express /api/broker/sync ${req.method}] Error:`, err);
     return res.status(400).json({
       success: false,
       error: err?.message || 'Failed to sync executions from broker gateway',
     });
   }
-});
+};
+
+/**
+ * POST & GET /api/broker/sync
+ * Synchronizes execution blotter and persists round-trip trades to Supabase ledger.
+ */
+app.post('/api/broker/sync', handleBrokerSync);
+app.get('/api/broker/sync', handleBrokerSync);
 
 /**
  * GET /api/economic-calendar
