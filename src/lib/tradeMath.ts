@@ -4,47 +4,31 @@
  */
 
 import { Trade } from '@/types';
+import { calculateProfitFactor as quantProfitFactor, calculateRealizedRR as quantRealizedRR } from '@/lib/quant-engine';
 
 /**
  * Total Gross Profit / Absolute value of Total Gross Loss.
  */
 export const calculateProfitFactor = (trades: Trade[]): number => {
-  const grossProfit = trades
-    .filter((t) => t.pnl > 0)
-    .reduce((sum, t) => sum + t.pnl, 0);
-  const grossLoss = trades
-    .filter((t) => t.pnl < 0)
-    .reduce((sum, t) => sum + Math.abs(t.pnl), 0);
-
-  if (grossLoss === 0) return grossProfit > 0 ? Infinity : 0;
-  return grossProfit / grossLoss;
+  return quantProfitFactor(trades);
 };
 
 /**
  * Average dollar amount of winners / Absolute average dollar amount of losers.
  */
 export const calculateAverageRR = (trades: Trade[]): number => {
-  const winners = trades.filter((t) => t.pnl > 0);
-  const losers = trades.filter((t) => t.pnl < 0);
-
-  if (losers.length === 0) return winners.length > 0 ? Infinity : 0;
-  
-  const avgWin = winners.reduce((sum, t) => sum + t.pnl, 0) / winners.length;
-  const avgLoss = losers.reduce((sum, t) => sum + Math.abs(t.pnl), 0) / losers.length;
-  
-  if (avgLoss === 0) return 0;
-  return avgWin / avgLoss;
+  return quantRealizedRR(trades);
 };
 
 /**
  * Calculate Max Drawdown from peak to trough in absolute dollar terms.
  */
 export const calculateMaxDrawdown = (trades: Trade[]): number => {
-  if (trades.length === 0) return 0;
+  if (!trades || trades.length === 0) return 0;
 
   // Sort trades by date
   const sortedTrades = [...trades].sort(
-    (a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
+    (a, b) => new Date(a.trade_date || a.created_at).getTime() - new Date(b.trade_date || b.created_at).getTime()
   );
 
   let currentEquity = 0;
@@ -52,7 +36,7 @@ export const calculateMaxDrawdown = (trades: Trade[]): number => {
   let maxDD = 0;
 
   for (const trade of sortedTrades) {
-    currentEquity += trade.pnl;
+    currentEquity += (Number(trade.pnl) || 0);
     
     if (currentEquity > peak) {
       peak = currentEquity;
@@ -64,5 +48,5 @@ export const calculateMaxDrawdown = (trades: Trade[]): number => {
     }
   }
 
-  return maxDD;
+  return Math.round((maxDD + Number.EPSILON) * 100) / 100;
 };

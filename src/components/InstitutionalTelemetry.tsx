@@ -143,7 +143,7 @@ export const InstitutionalTelemetry: React.FC<InstitutionalTelemetryProps> = ({
   return (
     <>
       <div className={cn(
-        "relative rounded-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-6 sm:p-7 md:p-8 overflow-hidden transition-all duration-300 hover:bg-white/[0.03]",
+        "relative rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-2xl p-6 sm:p-7 md:p-8 overflow-hidden transition-colors duration-150 hover:bg-zinc-900/60",
         className
       )}>
         {/* Workstation Header */}

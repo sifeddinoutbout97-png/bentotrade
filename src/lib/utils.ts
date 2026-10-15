@@ -28,5 +28,26 @@ export function getMarketTypeFromTicker(ticker: string): 'futures' | 'cfds' {
     return 'cfds';
   }
 
-  return 'cfds'; // Default safety for V1
+  return 'cfds'; // Default safety
+}
+
+export function formatCurrency(amount: number | null | undefined, showSign = false): string {
+  const val = Number(amount) || 0;
+  const absFormatted = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Math.abs(val));
+
+  if (val < 0) return `-${absFormatted}`;
+  if (val > 0 && showSign) return `+${absFormatted}`;
+  return absFormatted;
+}
+
+export function formatDate(dateInput: Date | string | number | null | undefined, options?: Intl.DateTimeFormatOptions): string {
+  if (!dateInput) return '';
+  const d = typeof dateInput === 'object' ? dateInput : new Date(dateInput);
+  if (isNaN(d.getTime())) return String(dateInput);
+  return new Intl.DateTimeFormat('en-US', options || { month: 'short', day: 'numeric', year: 'numeric' }).format(d);
 }

@@ -1,13 +1,12 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * BentoTrade v6.0 Authenticated Layout
+ * Features TopTelemetryBar HUD, Sidebar navigation, BentoCommandPalette modal, and fluid max-w-[1600px] widescreen containers.
  */
 
 import React from 'react';
 import { Sidebar } from './Sidebar';
-import { useAuth } from '@/lib/auth';
-import { Ghost, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { TopTelemetryBar } from './TopTelemetryBar';
+import { BentoCommandPalette } from '@/components/BentoCommandPalette';
 import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
@@ -15,23 +14,29 @@ interface DashboardLayoutProps {
   fullHeight?: boolean;
 }
 
-export const DashboardLayout = ({ children, fullHeight }: DashboardLayoutProps) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, fullHeight }) => {
+  const handleOpenCommandPalette = () => {
+    window.dispatchEvent(new CustomEvent('bt_open_command_palette'));
+  };
+
   return (
-    <div className="flex h-screen bg-background font-sans text-foreground overflow-x-hidden">
+    <div className="flex h-screen w-screen overflow-hidden bg-zinc-950 font-sans text-foreground">
       <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative pt-14 md:pt-0">
-        <div className={cn(
-          "flex-1 overflow-x-hidden",
-          fullHeight ? "overflow-hidden" : "overflow-y-auto"
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative pt-14 md:pt-0">
+        <TopTelemetryBar onOpenCommandPalette={handleOpenCommandPalette} />
+        <main className={cn(
+          "flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain",
+          fullHeight ? "overflow-hidden" : ""
         )}>
           <div className={cn(
             "mx-auto w-full",
-            fullHeight ? "h-full" : "max-w-[1400px] p-4 sm:p-6 md:p-8 lg:p-10 pb-24 md:pb-10"
+            fullHeight ? "h-full" : "max-w-[1600px] px-6 py-6 pb-24 md:pb-10"
           )}>
             {children}
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
+      <BentoCommandPalette />
     </div>
   );
 };

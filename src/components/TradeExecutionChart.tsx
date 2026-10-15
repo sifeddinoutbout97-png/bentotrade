@@ -280,18 +280,38 @@ export const TradeExecutionChart: React.FC<TradeExecutionChartProps> = ({
       ctx.fillText(pillText, pillX + 6, y + 3.5);
     };
 
+    // Shade Risk and Reward Zones
+    if (entryPrice && stopLoss) {
+      const yEntry = getY(entryPrice);
+      const ySL = getY(stopLoss);
+      if (yEntry >= padTop && yEntry <= h - padBottom && ySL >= padTop && ySL <= h - padBottom) {
+        ctx.fillStyle = 'rgba(244, 63, 94, 0.08)'; // Rose Risk Zone
+        ctx.fillRect(padLeft, Math.min(yEntry, ySL), w - padLeft - padRight, Math.abs(yEntry - ySL));
+      }
+    }
+
+    if (entryPrice && exitPrice) {
+      const yEntry = getY(entryPrice);
+      const yExit = getY(exitPrice);
+      const isExitProfit = direction === 'long' ? exitPrice > entryPrice : exitPrice < entryPrice;
+      if (yEntry >= padTop && yEntry <= h - padBottom && yExit >= padTop && yExit <= h - padBottom) {
+        ctx.fillStyle = isExitProfit ? 'rgba(52, 211, 153, 0.08)' : 'rgba(244, 63, 94, 0.08)';
+        ctx.fillRect(padLeft, Math.min(yEntry, yExit), w - padLeft - padRight, Math.abs(yEntry - yExit));
+      }
+    }
+
     // Draw Reference Lines: Stop Loss, Entry, Exit
     if (stopLoss) {
-      drawReferenceLine(stopLoss, 'SL', '#f43f5e', '#881337');
+      drawReferenceLine(stopLoss, 'STOP LOSS', '#f43f5e', '#881337');
     }
     if (entryPrice) {
-      drawReferenceLine(entryPrice, 'ENTRY', '#f59e0b', '#78350f');
+      drawReferenceLine(entryPrice, 'ENTRY', '#22d3ee', '#0891b2');
     }
     if (exitPrice) {
       const isExitProfit = direction === 'long' ? exitPrice > entryPrice : exitPrice < entryPrice;
-      const exitCol = isExitProfit ? '#10b981' : '#f43f5e';
+      const exitCol = isExitProfit ? '#34d399' : '#f43f5e';
       const exitBg = isExitProfit ? '#064e3b' : '#881337';
-      drawReferenceLine(exitPrice, 'EXIT', exitCol, exitBg);
+      drawReferenceLine(exitPrice, isExitProfit ? 'TAKE PROFIT / EXIT' : 'EXIT', exitCol, exitBg);
     }
 
     // Crosshair & Tooltip Overlay
@@ -421,7 +441,7 @@ export const TradeExecutionChart: React.FC<TradeExecutionChartProps> = ({
         {/* Hover Tooltip Overlay */}
         {hoveredCandle && mousePos && (
           <div 
-            className="absolute pointer-events-none z-20 px-3 py-2 rounded-sm bg-zinc-900/95 border border-zinc-800 shadow-2xl backdrop-blur-md text-[10px] font-mono text-zinc-200 space-y-1"
+            className="absolute pointer-events-none z-20 px-3 py-2 rounded-sm bg-zinc-900 border border-zinc-800 shadow-2xl text-[10px] font-mono text-zinc-200 space-y-1"
             style={{
               left: Math.min(dimensions.width - 150, Math.max(10, mousePos.x - 70)),
               top: Math.max(10, Math.min(dimensions.height - 110, mousePos.y - 75))

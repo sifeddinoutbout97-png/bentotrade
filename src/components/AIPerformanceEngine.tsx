@@ -16,7 +16,9 @@ import {
   Bot, 
   Binary, 
   Layers,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck,
+  Activity
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -30,6 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
+import { calculatePerformanceAnalytics, evaluateGuardrails, GuardrailAlert } from '@/lib/quant-engine';
 
 export interface AIPerformanceEngineProps {
   trades: Trade[];
@@ -46,7 +49,6 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
   const { subState, isPricingModalOpen, openPricingModal, closePricingModal, upgradePlan, loading: subLoading } = useSubscription();
 
   const [activeTab, setActiveTab] = useState<TabType>('statistical_edge');
-  const [isScanning, setIsScanning] = useState(false);
   
   // Dialog state for quick action triggers
   const [isMonteCarloModalOpen, setIsMonteCarloModalOpen] = useState(false);
@@ -56,60 +58,42 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
   const [mcResult, setMcResult] = useState<MonteCarloWorkerResult | null>(null);
   const [mcRunning, setMcRunning] = useState(false);
 
-  // Compute Institutional Edge & Behavioral Metrics dynamically from trades
+  // Compute Institutional Edge & Behavioral Metrics using lib/quant-engine Modules 1 & 4
+  const analytics = useMemo(() => {
+    return calculatePerformanceAnalytics(trades);
+  }, [trades]);
+
+  const guardrailAlerts = useMemo(() => {
+    return evaluateGuardrails(trades, 50000);
+  }, [trades]);
+
   const analysis = useMemo(() => {
     if (!trades || trades.length === 0) {
       return {
         totalTrades: 0,
         winRate: 0,
         profitFactor: 0,
-        expectancy: 0,
-        realizedRMultiple: 0,
+        expectancyDollars: 0,
+        expectancyR: 0,
+        realizedRR: 0,
+        netProfitFactor: 0,
+        sharpeRatio: 0,
+        sortinoRatio: 0,
         avgWin: 0,
         avgLoss: 0,
-        fomoCount: 0,
-        revengeCount: 0,
-        tiltClusterCount: 0,
         winStreak: 0,
         lossStreak: 0,
         currentStreak: 0,
         currentStreakType: 'none' as 'win' | 'loss' | 'none',
         blindSpots: ['No execution logs recorded yet. Log trades to activate heuristic intelligence.'] as string[],
-        behavioralAlerts: [{ severity: 'info' as const, title: 'Clean Journal Baseline', detail: 'Dynamic quant heuristics ready for initial trade entry.' }],
         edgeRating: 'ZERO BASELINE'
       };
     }
 
     // Sort chronologically (oldest to newest)
     const sorted = [...trades].sort(
-      (a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
+      (a, b) => new Date(a.trade_date || a.created_at).getTime() - new Date(b.trade_date || b.created_at).getTime()
     );
-
-    const winningTrades = sorted.filter(t => t.status === 'win' || Number(t.pnl) > 0);
-    const losingTrades = sorted.filter(t => t.status === 'loss' || Number(t.pnl) < 0);
-
-    const winCount = winningTrades.length;
-    const lossCount = losingTrades.length;
-    const winRate = sorted.length > 0 ? (winCount / sorted.length) * 100 : 0;
-
-    const grossProfit = winningTrades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
-    const grossLoss = Math.abs(losingTrades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0));
-
-    // Profit Factor: gross profit / gross loss (0.00 if insufficient data)
-    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 9.99 : 0;
-    const avgWin = winCount > 0 ? grossProfit / winCount : 0;
-    const avgLoss = lossCount > 0 ? grossLoss / lossCount : 0;
-
-    // Realized Risk-to-Reward & Expectancy calculation
-    // Nominal 1R risk baseline = avgLoss (or $100 if zero losses recorded)
-    const nominalR = avgLoss > 0 ? avgLoss : 100;
-    const realizedRMultiple = nominalR > 0 ? (avgWin / nominalR) : 0;
-
-    // Expectancy: E = (P(Win) * AvgWin) - (P(Loss) * AvgLoss) normalized in R units
-    const pWin = sorted.length > 0 ? winCount / sorted.length : 0;
-    const pLoss = sorted.length > 0 ? lossCount / sorted.length : 0;
-    const expectancyDollars = (pWin * avgWin) - (pLoss * avgLoss);
-    const expectancy = nominalR > 0 ? expectancyDollars / nominalR : 0;
 
     // Calculate Win Streak / Loss Streak telemetry
     let maxWinStreak = 0;
@@ -148,83 +132,24 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
       }
     }
 
-    // Behavioral Guardrails: Check for FOMO, Revenge, Sub-30m Re-entries
-    let fomoCount = 0;
-    let revengeCount = 0;
-    let tiltClusterCount = 0;
-    const behavioralAlerts: { severity: 'critical' | 'warning' | 'info'; title: string; detail: string }[] = [];
-
-    sorted.forEach(t => {
-      const combinedNotes = `${t.notes || ''} ${t.ticker || ''}`.toLowerCase();
-      if (combinedNotes.includes('fomo') || combinedNotes.includes('chase') || combinedNotes.includes('late')) {
-        fomoCount++;
-      }
-      if (combinedNotes.includes('revenge') || combinedNotes.includes('tilt') || combinedNotes.includes('angry')) {
-        revengeCount++;
-      }
-    });
-
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1];
-      const curr = sorted[i];
-      const prevPnl = Number(prev.pnl) || 0;
-      const isPrevLoss = prev.status === 'loss' || prevPnl < 0;
-
-      if (isPrevLoss) {
-        const prevTime = new Date(prev.trade_date).getTime();
-        const currTime = new Date(curr.trade_date).getTime();
-        const diffMinutes = Math.abs(currTime - prevTime) / (1000 * 60);
-
-        if (diffMinutes <= 30 && !isNaN(diffMinutes)) {
-          tiltClusterCount++;
-        }
-      }
-    }
-
-    if (tiltClusterCount > 0) {
-      behavioralAlerts.push({
-        severity: 'critical',
-        title: 'Revenge Tilt Acceleration',
-        detail: `Detected ${tiltClusterCount} execution${tiltClusterCount > 1 ? 's' : ''} opened within 30m of an adverse exit. Violates cooling protocol.`
-      });
-    }
-
-    if (fomoCount > 0) {
-      behavioralAlerts.push({
-        severity: 'warning',
-        title: 'Impulsive FOMO Entries',
-        detail: `${fomoCount} trade${fomoCount > 1 ? 's' : ''} flagged with chasing or FOMO markers. Expected slippage increases by ~1.8R.`
-      });
-    }
-
-    if (revengeCount > 0) {
-      behavioralAlerts.push({
-        severity: 'critical',
-        title: 'Revenge Sizing Anomaly',
-        detail: `${revengeCount} trade notes contain revenge trading terminology. High risk of systemic drawdown.`
-      });
-    }
-
-    if (behavioralAlerts.length === 0) {
-      behavioralAlerts.push({
-        severity: 'info',
-        title: 'Guardrails Clean & Disciplined',
-        detail: 'Zero emotional tilt triggers or sub-30min revenge re-entries detected in current journal sample.'
-      });
-    }
-
     // Heuristic Blind Spots
     const blindSpots: string[] = [];
-    const tradesWithoutStop = sorted.filter(t => !t.stop_loss || t.stop_loss === 0).length;
+    const tradesWithoutStop = sorted.filter(t => !t.stop_loss || Number(t.stop_loss) === 0).length;
     if (tradesWithoutStop > 0) {
       blindSpots.push(
-        `Naked Downside Exposure: ${tradesWithoutStop} trade${tradesWithoutStop > 1 ? 's' : ''} executed without recorded hard stops. One tail risk event can compromise weekly expectancy.`
+        `Naked Downside Exposure: ${tradesWithoutStop} trade${tradesWithoutStop > 1 ? 's' : ''} executed without recorded hard stops. One tail event can compromise expectancy.`
       );
     }
 
     if (maxLossStreak >= 3) {
       blindSpots.push(
         `Drawdown Resilience: Max consecutive loss streak reached ${maxLossStreak} trades. Verify contract size compression formula during regime shifts.`
+      );
+    }
+
+    if (analytics.netProfitFactor < 1.0 && analytics.totalTrades > 2) {
+      blindSpots.push(
+        `Friction Friction Drag: Net Profit Factor (${analytics.netProfitFactor}) is below 1.0 due to commissions or slippage drag.`
       );
     }
 
@@ -235,30 +160,30 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
     }
 
     let edgeRating = 'NEUTRAL';
-    if (expectancy > 0.4 && profitFactor > 1.6) edgeRating = 'INSTITUTIONAL';
-    else if (expectancy > 0.15 && profitFactor > 1.15) edgeRating = 'POSITIVE EDGE';
-    else if (expectancy < 0) edgeRating = 'NEGATIVE DRIFT';
+    if (analytics.expectancyR > 0.4 && analytics.profitFactor > 1.6) edgeRating = 'INSTITUTIONAL';
+    else if (analytics.expectancyR > 0.15 && analytics.profitFactor > 1.15) edgeRating = 'POSITIVE EDGE';
+    else if (analytics.expectancyR < 0) edgeRating = 'NEGATIVE DRIFT';
 
     return {
       totalTrades: sorted.length,
-      winRate,
-      profitFactor,
-      expectancy,
-      realizedRMultiple,
-      avgWin,
-      avgLoss,
-      fomoCount,
-      revengeCount,
-      tiltClusterCount,
+      winRate: analytics.winRate,
+      profitFactor: analytics.profitFactor,
+      expectancyDollars: analytics.expectancyDollars,
+      expectancyR: analytics.expectancyR,
+      realizedRR: analytics.realizedRR,
+      netProfitFactor: analytics.netProfitFactor,
+      sharpeRatio: analytics.sharpeRatio,
+      sortinoRatio: analytics.sortinoRatio,
+      avgWin: analytics.avgWinDollars,
+      avgLoss: analytics.avgLossDollars,
       winStreak: maxWinStreak,
       lossStreak: maxLossStreak,
       currentStreak,
       currentStreakType,
       blindSpots,
-      behavioralAlerts,
       edgeRating
     };
-  }, [trades]);
+  }, [trades, analytics]);
 
   // Execute Web Worker Monte Carlo simulation on demand
   const handleTriggerMonteCarlo = () => {
@@ -309,7 +234,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
   return (
     <>
       <Card className={cn(
-        "rounded-2xl bg-white/[0.015] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] text-zinc-100 p-6 sm:p-7 md:p-8 flex flex-col group overflow-hidden relative transition-all duration-300 hover:bg-white/[0.03]",
+        "rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-2xl text-zinc-100 p-6 sm:p-7 md:p-8 flex flex-col group overflow-hidden relative transition-colors duration-150 hover:bg-zinc-900/60",
         className
       )}>
         {/* 1. Header */}
@@ -319,8 +244,11 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
               <BrainCircuit size={15} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
-                AI Performance Engine
+              <h3 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono flex items-center gap-2">
+                <span>AI Performance Engine</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                  v5.0 Quant Core
+                </span>
               </h3>
             </div>
           </div>
@@ -352,7 +280,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
               )}
             >
               <ShieldAlert size={11} className={activeTab === 'guardrails' ? "text-zinc-300" : "text-zinc-600"} />
-              <span>Guardrails</span>
+              <span>Guardrails ({guardrailAlerts.length})</span>
             </button>
 
             <button
@@ -371,7 +299,7 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
           </div>
         </div>
 
-        {/* 2. Enhanced High-Density Metric Cards Grid */}
+        {/* 2. Enhanced High-Density Metric Cards Grid (Module 1 Analytics) */}
         <motion.div 
           className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5 z-10"
           initial={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -386,24 +314,29 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             }
           }}
         >
-          {/* EXPECTANCY */}
+          {/* EXPECTANCY ($ & R) */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
             transition={{ duration: 0.45, delay: 0.04, ease: 'easeOut' }}
             className="p-4 sm:p-5 rounded-xl bg-white/[0.01] border border-white/[0.03] space-y-2 flex flex-col justify-between hover:bg-white/[0.02] transition-all duration-300"
           >
-            <div className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
-              <span>Expectancy</span>
+            <div className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono flex items-center justify-between">
+              <span>Expectancy ($ / R)</span>
             </div>
-            <div className={cn(
-              "text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums text-zinc-100"
-            )}>
-              {analysis.totalTrades === 0 
-                ? '0.00R' 
-                : analysis.expectancy >= 0 
-                  ? `+${analysis.expectancy.toFixed(2)}R` 
-                  : `${analysis.expectancy.toFixed(2)}R`}
+            <div>
+              <div className={cn(
+                "text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums text-zinc-100"
+              )}>
+                {analysis.totalTrades === 0 
+                  ? '0.00R' 
+                  : analysis.expectancyR >= 0 
+                    ? `+${analysis.expectancyR.toFixed(2)}R` 
+                    : `${analysis.expectancyR.toFixed(2)}R`}
+              </div>
+              <span className="text-[10px] font-mono text-zinc-500 block mt-0.5">
+                ${analysis.expectancyDollars.toFixed(2)} / trade
+              </span>
             </div>
           </motion.div>
 
@@ -417,8 +350,13 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             <div className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
               <span>Profit Factor</span>
             </div>
-            <div className="text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums text-zinc-100">
-              {analysis.profitFactor.toFixed(2)}
+            <div>
+              <div className="text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums text-zinc-100">
+                {analysis.profitFactor.toFixed(2)}
+              </div>
+              <span className="text-[10px] font-mono text-zinc-500 block mt-0.5">
+                Net PF: {analysis.netProfitFactor.toFixed(2)}
+              </span>
             </div>
           </motion.div>
 
@@ -430,14 +368,19 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             className="p-4 sm:p-5 rounded-xl bg-white/[0.01] border border-white/[0.03] space-y-2 flex flex-col justify-between hover:bg-white/[0.02] transition-all duration-300"
           >
             <div className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
-              <span>Real R:R</span>
+              <span>Realized R:R</span>
             </div>
-            <div className="text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums text-zinc-100">
-              {analysis.realizedRMultiple.toFixed(2)}R
+            <div>
+              <div className="text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums text-zinc-100">
+                1:{analysis.realizedRR.toFixed(2)}
+              </div>
+              <span className="text-[10px] font-mono text-zinc-500 block mt-0.5">
+                Avg Win: ${analysis.avgWin.toFixed(0)}
+              </span>
             </div>
           </motion.div>
 
-          {/* STREAKS TELEMETRY */}
+          {/* SHARPE / SORTINO */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: [0.97, 1.012, 1] }}
@@ -445,12 +388,17 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
             className="p-4 sm:p-5 rounded-xl bg-white/[0.01] border border-white/[0.03] space-y-2 flex flex-col justify-between hover:bg-white/[0.02] transition-all duration-300"
           >
             <div className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
-              <span>Streaks (W/L)</span>
+              <span>Sharpe / Sortino</span>
             </div>
-            <div className="text-lg sm:text-xl font-bold font-mono tracking-tight tabular-nums text-zinc-100 flex items-center gap-1.5">
-              <span>{analysis.winStreak}W</span>
-              <span className="text-zinc-600">/</span>
-              <span>{analysis.lossStreak}L</span>
+            <div>
+              <div className="text-lg sm:text-xl font-bold font-mono tracking-tight tabular-nums text-zinc-100 flex items-center gap-1.5">
+                <span>{analysis.sharpeRatio.toFixed(2)}</span>
+                <span className="text-zinc-600">/</span>
+                <span className="text-emerald-400">{analysis.sortinoRatio.toFixed(2)}</span>
+              </div>
+              <span className="text-[10px] font-mono text-zinc-500 block mt-0.5">
+                Annualized Telemetry
+              </span>
             </div>
           </motion.div>
         </motion.div>
@@ -468,11 +416,11 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-zinc-500 leading-relaxed font-sans">
-                  {analysis.expectancy > 0 
-                    ? `Mathematical edge confirmed. System compounds positive expectancy under disciplined targets.` 
+                  {analysis.expectancyR > 0 
+                    ? `Mathematical edge confirmed (+${analysis.expectancyR.toFixed(2)}R per execution). System compounds positive expectancy under disciplined risk limits.` 
                     : analysis.totalTrades === 0
                       ? `Awaiting trade entries to calibrate quantitative distribution.`
-                      : `Expectancy is currently negative (${analysis.expectancy.toFixed(2)}R). Review stop discipline and avoid revenge sizing.`}
+                      : `Expectancy is currently negative (${analysis.expectancyR.toFixed(2)}R). Review stop loss discipline and avoid position size escalation.`}
                 </p>
               </div>
             </div>
@@ -480,254 +428,161 @@ export const AIPerformanceEngine: React.FC<AIPerformanceEngineProps> = ({
 
           {activeTab === 'guardrails' && (
             <div className="space-y-2.5 animate-in fade-in duration-200">
-              <div className="grid grid-cols-2 gap-2.5 text-xs font-mono">
-                <div className={cn(
-                  "p-3 rounded-xl border flex items-center justify-between",
-                  analysis.tiltClusterCount > 0 
-                    ? "bg-rose-500/10 border-rose-500/30 text-rose-300" 
-                    : "bg-zinc-900/60 border-zinc-800 text-zinc-300"
-                )}>
-                  <span className="text-[10px] uppercase font-bold">Sub-30m Re-Entries</span>
-                  <span className="font-black text-sm">{analysis.tiltClusterCount}</span>
-                </div>
-
-                <div className={cn(
-                  "p-3 rounded-xl border flex items-center justify-between",
-                  (analysis.fomoCount + analysis.revengeCount) > 0 
-                    ? "bg-rose-500/10 border-rose-500/30 text-rose-300" 
-                    : "bg-zinc-900/60 border-zinc-800 text-zinc-300"
-                )}>
-                  <span className="text-[10px] uppercase font-bold">FOMO / Tilt Tags</span>
-                  <span className="font-black text-sm">{analysis.fomoCount + analysis.revengeCount}</span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 max-h-[110px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-zinc-800">
-                {analysis.behavioralAlerts.map((alert, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "p-2.5 rounded-xl border text-xs leading-relaxed space-y-0.5",
-                      alert.severity === 'critical' && "bg-rose-950/20 border-rose-500/40 text-rose-200",
-                      alert.severity === 'warning' && "bg-amber-950/20 border-amber-500/40 text-amber-200",
-                      alert.severity === 'info' && "bg-zinc-900/60 border-zinc-800 text-zinc-300"
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5 font-bold font-mono text-[10px] uppercase tracking-wide">
-                      {alert.severity === 'critical' ? (
-                        <AlertTriangle size={12} className="text-rose-500 shrink-0" />
-                      ) : alert.severity === 'warning' ? (
-                        <Flame size={12} className="text-amber-500 shrink-0" />
-                      ) : (
-                        <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+              <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-zinc-800">
+                {guardrailAlerts.length > 0 ? (
+                  guardrailAlerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className={cn(
+                        "p-2.5 rounded-xl border text-xs leading-relaxed space-y-0.5 font-mono",
+                        alert.severity === 'CRITICAL' && "bg-rose-950/20 border-rose-500/40 text-rose-200",
+                        alert.severity === 'WARNING' && "bg-amber-950/20 border-amber-500/40 text-amber-200"
                       )}
-                      <span>{alert.title}</span>
+                    >
+                      <div className="flex items-center justify-between font-bold text-[10px] uppercase tracking-wide">
+                        <div className="flex items-center gap-1.5">
+                          {alert.severity === 'CRITICAL' ? (
+                            <AlertTriangle size={12} className="text-rose-500 shrink-0" />
+                          ) : (
+                            <Flame size={12} className="text-amber-500 shrink-0" />
+                          )}
+                          <span>{alert.title}</span>
+                        </div>
+                        <span className="text-[9px] text-zinc-400 font-mono">{alert.metricBreached}</span>
+                      </div>
+                      <p className="text-[11px] opacity-90 font-sans pt-0.5">
+                        {alert.reason}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-zinc-400 font-sans pl-3.5">
-                      {alert.detail}
-                    </p>
+                  ))
+                ) : (
+                  <div className="p-3 rounded-xl border bg-zinc-900/60 border-zinc-800 text-zinc-300 text-xs font-mono flex items-center gap-2">
+                    <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
+                    <span>Guardrails Clean: Zero revenge entries, size spikes, or drawdown limits breached.</span>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
 
           {activeTab === 'blind_spots' && (
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/[0.05] border border-amber-500/20 space-y-2 animate-in fade-in duration-200">
-              <div className="flex items-center gap-1.5 text-amber-400 font-mono text-xs font-bold uppercase tracking-wider">
-                <Compass size={14} className="shrink-0" />
-                <span>Synthesized Execution Blind Spots</span>
-              </div>
-              <div className="space-y-1">
-                {analysis.blindSpots.map((spot, idx) => (
-                  <div key={idx} className="flex items-start gap-1.5 text-[11px] leading-relaxed text-zinc-300 font-sans">
-                    <span className="text-amber-400 font-bold mt-0.5">•</span>
-                    <span>{spot}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-2 animate-in fade-in duration-200">
+              {analysis.blindSpots.map((spot, idx) => (
+                <div key={idx} className="p-3 rounded-xl bg-white/[0.01] border border-white/[0.03] text-xs font-mono text-zinc-300 flex items-start gap-2">
+                  <Compass size={14} className="text-zinc-500 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{spot}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* 3. Action Footer & Paywall Triggers */}
-        <div className="pt-3.5 border-t border-white/[0.03] flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-10 shrink-0">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Quick Trigger: Audit Trade Log */}
-            <Button
+        {/* 3. Action Buttons Row */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-white/[0.03] z-10 shrink-0 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <button
               type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => navigate('/ai-insights')}
-              className="h-8 px-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] text-zinc-300 border-white/[0.03] font-mono text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5"
-            >
-              <Bot size={13} className="text-zinc-500" />
-              <span>Audit Trade Log</span>
-            </Button>
-
-            {/* Quick Trigger: Run Monte Carlo Simulation */}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
               onClick={handleTriggerMonteCarlo}
-              className="h-8 px-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] text-zinc-300 border-white/[0.03] font-mono text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] text-zinc-300 font-medium tracking-wider uppercase flex items-center gap-1.5 transition-all text-[11px]"
             >
-              <Binary size={13} className="text-zinc-500" />
-              <span>Run Monte Carlo</span>
-            </Button>
+              <Cpu size={12} className="text-primary" />
+              <span>10k-Path Monte Carlo</span>
+            </button>
 
-            {/* Quick Trigger: Calibrate Kelly Criterion */}
-            <Button
+            <button
               type="button"
-              size="sm"
-              variant="outline"
               onClick={() => setIsKellyModalOpen(true)}
-              className="h-8 px-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] text-zinc-300 border-white/[0.03] font-mono text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] text-zinc-300 font-medium tracking-wider uppercase flex items-center gap-1.5 transition-all text-[11px]"
             >
-              <Scale size={13} className="text-zinc-500" />
-              <span>Calibrate Kelly</span>
-            </Button>
+              <Target size={12} className="text-emerald-400" />
+              <span>Kelly Sizing: {kellyMetrics.halfKellyPct}%</span>
+            </button>
           </div>
 
           <button
             type="button"
-            onClick={() => navigate('/analytics')}
-            className="text-[10px] font-mono text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1 uppercase tracking-wider font-medium shrink-0 self-end sm:self-auto"
+            onClick={() => navigate('/ai-insights')}
+            className="text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-1 text-[11px] uppercase font-bold"
           >
-            <span>Full Quant Desk</span>
-            <ArrowRight size={11} />
+            <span>Full Analysis</span>
+            <ArrowRight size={12} />
           </button>
         </div>
       </Card>
 
-      {/* MODAL 2: 10,000-PATH MONTE CARLO WEB WORKER SIMULATION */}
+      {/* Dialog: Monte Carlo Results Modal */}
       <Dialog open={isMonteCarloModalOpen} onOpenChange={setIsMonteCarloModalOpen}>
-        <DialogContent className="max-w-lg bg-gray-950 border border-zinc-800 text-white rounded-3xl p-6">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="flex items-center gap-2 text-base font-black uppercase tracking-wider">
-              <Binary className="text-indigo-400" size={18} />
-              10,000-Path Monte Carlo Simulation (Off-Thread Web Worker)
+        <DialogContent className="bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-2xl max-w-xl text-zinc-100 font-mono">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold uppercase tracking-widest text-zinc-200 flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-primary" />
+              <span>10,000-Path Monte Carlo Simulation</span>
             </DialogTitle>
-            <DialogDescription className="text-xs text-zinc-400 font-mono">
-              Bootstraps 10,000 randomized permutations of historical outcomes to detect ruin vulnerability.
+            <DialogDescription className="text-xs text-zinc-400">
+              Off-thread bootstrap simulation modeling 10,000 future equity curve trajectories based on historical PnL distribution.
             </DialogDescription>
           </DialogHeader>
 
-          {mcRunning ? (
-            <div className="flex flex-col items-center justify-center py-10 space-y-3">
-              <RefreshCw size={28} className="animate-spin text-indigo-400" />
-              <p className="text-xs font-mono font-bold text-zinc-300">
-                Web Worker generating 10,000 bootstrap paths...
-              </p>
-            </div>
-          ) : mcResult ? (
-            <div className="space-y-4 font-mono text-xs">
-              <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400 uppercase">Risk of Ruin (20% DD):</span>
-                  <span className={cn(
-                    "text-base font-black",
-                    mcResult.ruinProbability <= 1 ? "text-emerald-400" : mcResult.ruinProbability <= 5 ? "text-amber-400" : "text-rose-400"
-                  )}>
-                    {mcResult.ruinProbability.toFixed(1)}%
-                  </span>
+          <div className="py-4 space-y-4">
+            {mcRunning ? (
+              <div className="p-8 text-center space-y-3">
+                <RefreshCw className="w-8 h-8 text-primary animate-spin mx-auto" />
+                <p className="text-xs text-zinc-400">Simulating 10,000 execution paths in Web Worker...</p>
+              </div>
+            ) : mcResult ? (
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-1">
+                  <span className="text-[10px] text-zinc-500 uppercase">Probability of Ruin (&gt;20% DD)</span>
+                  <div className="text-base font-bold text-amber-400">{(mcResult.ruinProbability * 100).toFixed(1)}%</div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400 uppercase">Median Bootstrap DD:</span>
-                  <span className="text-white font-bold">{mcResult.medianDrawdown.toFixed(1)}%</span>
+                <div className="p-3 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-1">
+                  <span className="text-[10px] text-zinc-500 uppercase">Median Projected Drawdown</span>
+                  <div className="text-base font-bold text-rose-400">${mcResult.medianDrawdown.toFixed(2)}</div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400 uppercase">Worst-Case Simulated DD:</span>
-                  <span className="text-rose-400 font-bold">{mcResult.maxDrawdown.toFixed(1)}%</span>
+                <div className="p-3 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-1">
+                  <span className="text-[10px] text-zinc-500 uppercase">Max Simulated Drawdown</span>
+                  <div className="text-base font-bold text-rose-500">${mcResult.maxDrawdown.toFixed(2)}</div>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-zinc-500 pt-1 border-t border-zinc-800">
-                  <span>Paths Computed: {mcResult.pathsSampled.toLocaleString()}</span>
-                  <span>Execution: 0-Drop Web Worker</span>
+                <div className="p-3 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-1">
+                  <span className="text-[10px] text-zinc-500 uppercase">Sampled Trajectories</span>
+                  <div className="text-base font-bold text-emerald-400">{mcResult.pathsSampled.toLocaleString()} Paths</div>
                 </div>
               </div>
-
-              <Button
-                onClick={handleTriggerMonteCarlo}
-                className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider"
-              >
-                Re-Run Simulation
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-xs text-zinc-400 font-mono">
-                Historical sample contains {analysis.totalTrades} trade blocks. Click below to spawn the Web Worker engine.
-              </p>
-              <Button
-                onClick={handleTriggerMonteCarlo}
-                disabled={trades.length < 3}
-                className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider disabled:opacity-50"
-              >
-                Launch 10,000-Path Bootstrap
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL 3: KELLY CRITERION CALIBRATION DIALOG */}
-      <Dialog open={isKellyModalOpen} onOpenChange={setIsKellyModalOpen}>
-        <DialogContent className="max-w-md bg-gray-950 border border-zinc-800 text-white rounded-3xl p-6">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="flex items-center gap-2 text-base font-black uppercase tracking-wider">
-              <Scale className="text-amber-400" size={18} />
-              Kelly Criterion Sizing Engine
-            </DialogTitle>
-            <DialogDescription className="text-xs text-zinc-400 font-mono">
-              Mathematical optimal position sizing derived from current win rate and win/loss ratio.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 font-mono text-xs">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-1">
-                <span className="text-[10px] text-zinc-500 uppercase">Half-Kelly (Safe)</span>
-                <div className="text-2xl font-black text-emerald-400">
-                  {kellyMetrics.halfKellyPct}%
-                </div>
-                <div className="text-[9px] text-zinc-400">Recommended setup risk</div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-1">
-                <span className="text-[10px] text-zinc-500 uppercase">Full Kelly (Max)</span>
-                <div className="text-2xl font-black text-white">
-                  {kellyMetrics.fullKellyPct}%
-                </div>
-                <div className="text-[9px] text-zinc-400">Theoretical upper bound</div>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-1">
-              <div className="text-[10px] text-zinc-500 uppercase font-bold">Mathematical Directive:</div>
-              <p className="text-xs text-zinc-200 leading-relaxed font-sans">
-                {kellyMetrics.recommendation}
-              </p>
-            </div>
-
-            <Button
-              onClick={() => setIsKellyModalOpen(false)}
-              className="w-full h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider"
-            >
-              Acknowledge Calibration
-            </Button>
+            ) : (
+              <p className="text-xs text-zinc-500 text-center py-4">Click below to initiate off-thread simulation.</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Paywall Pricing Modal */}
-      <PricingModal
-        isOpen={isPricingModalOpen}
-        onClose={closePricingModal}
-        currentTier={subState.currentTier}
-        onSelectPlan={upgradePlan}
-        isLoading={subLoading}
-      />
+      {/* Dialog: Kelly Criterion Modal */}
+      <Dialog open={isKellyModalOpen} onOpenChange={setIsKellyModalOpen}>
+        <DialogContent className="bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-2xl max-w-md text-zinc-100 font-mono">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold uppercase tracking-widest text-zinc-200 flex items-center gap-2">
+              <Target className="w-4 h-4 text-emerald-400" />
+              <span>Kelly Criterion Capital Allocation</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              Optimal mathematical fraction of capital to risk per trade to maximize logarithmic growth rate.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3 text-xs">
+            <div className="p-3 bg-zinc-900/60 border border-zinc-800 rounded-xl flex justify-between items-center">
+              <span className="text-zinc-400">Full Kelly Strategy:</span>
+              <span className="font-bold text-zinc-200">{kellyMetrics.fullKellyPct}% of equity</span>
+            </div>
+            <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 rounded-xl flex justify-between items-center">
+              <span className="text-emerald-300 font-bold">Institutional Half-Kelly (Recommended):</span>
+              <span className="font-black text-emerald-400">{kellyMetrics.halfKellyPct}% of equity</span>
+            </div>
+            <p className="text-[10px] text-zinc-500 leading-relaxed pt-1">
+              Half-Kelly allocation cuts volatility by 50% while retaining ~75% of maximum theoretical growth speed.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

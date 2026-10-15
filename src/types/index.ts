@@ -28,6 +28,7 @@ export interface Trade {
   notes?: string;
   image_urls?: string[];
   ai_analysis?: string;
+  tags?: string[];
   created_at: string;
 }
 

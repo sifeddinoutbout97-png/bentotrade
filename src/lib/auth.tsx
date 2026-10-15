@@ -192,10 +192,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               } else if (refreshErr) {
                 console.warn('Initial session refresh note:', refreshErr.message);
                 initialSession = null;
-                await supabase.auth.signOut().catch(() => {});
+                import('./supabase').then((m) => m.clearStaleAuthStorage().catch(() => {}));
               }
             } catch (refErr) {
               console.warn('Initial session refresh caught error:', refErr);
+              initialSession = null;
+              import('./supabase').then((m) => m.clearStaleAuthStorage().catch(() => {}));
             }
           }
         }

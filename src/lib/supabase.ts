@@ -41,8 +41,29 @@ export const isJwtExpiredError = (err: any): boolean => {
   const stringified = typeof err === 'object' ? JSON.stringify(err) : '';
   return code === 'PGRST303' || 
          /jwt expired/i.test(message) || 
+         /invalid refresh token/i.test(message) ||
+         /refresh token not found/i.test(message) ||
          /PGRST303/i.test(stringified) ||
-         /jwt expired/i.test(stringified);
+         /jwt expired/i.test(stringified) ||
+         /invalid refresh token/i.test(stringified);
+};
+
+export const clearStaleAuthStorage = async () => {
+  try {
+    await supabase.auth.signOut().catch(() => {});
+    if (typeof window !== 'undefined') {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    }
+  } catch (e) {
+    console.warn('Error clearing stale auth storage:', e);
+  }
 };
 
 let refreshPromise: Promise<boolean> | null = null;
@@ -60,12 +81,19 @@ export const safeRefreshSession = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.refreshSession();
       if (error || !data.session) {
-        console.warn('Session refresh note:', error?.message || 'No active session to refresh');
+        const msg = error?.message || '';
+        if (/refresh token/i.test(msg) || /invalid/i.test(msg) || error?.status === 400) {
+          console.warn('Invalid refresh token detected. Clearing stale auth session.');
+          await clearStaleAuthStorage();
+        } else {
+          console.warn('Session refresh note:', msg || 'No active session to refresh');
+        }
         return false;
       }
       return true;
-    } catch (e) {
-      console.warn('Exception during session refresh:', e);
+    } catch (e: any) {
+      console.warn('Exception during session refresh:', e?.message || e);
+      await clearStaleAuthStorage();
       return false;
     } finally {
       refreshPromise = null;

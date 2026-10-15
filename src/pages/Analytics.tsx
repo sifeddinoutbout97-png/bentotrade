@@ -37,7 +37,7 @@ export const Analytics = () => {
   }
 
   return (
-    <div className="w-full max-w-[100vw] overflow-x-hidden bg-[#050505] text-zinc-100 -m-4 sm:-m-6 md:-m-8 p-4 sm:p-6 md:p-8 min-h-full rounded-none md:rounded-3xl border-0 md:border md:border-white/[0.03] animate-in fade-in duration-500 space-y-5 lg:space-y-6">
+    <div className="w-full max-w-[1600px] mx-auto text-zinc-100 animate-in fade-in duration-500 space-y-6 pb-20">
       {/* Bento Quant Metrics Suite */}
       <QuantMetricsGrid trades={trades} />
 

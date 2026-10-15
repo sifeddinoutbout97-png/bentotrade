@@ -114,7 +114,7 @@ export const MarketPulse = () => {
     const updateTime = () => setCurrentTime(Date.now());
     
     updateTime();
-    const interval = setInterval(updateTime, 15000);
+    const interval = setInterval(updateTime, 60000);
     
     window.addEventListener('focus', updateTime);
     document.addEventListener('visibilitychange', updateTime);
@@ -249,7 +249,7 @@ export const MarketPulse = () => {
   }
 
   return (
-    <div className="p-3 md:p-10 space-y-6 md:space-y-8 max-w-[1600px] mx-auto min-h-screen">
+    <div className="p-3 md:p-10 space-y-6 md:space-y-8 max-w-[1600px] mx-auto w-full">
       {/* Header */}
       <header className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 md:gap-4">
@@ -267,7 +267,7 @@ export const MarketPulse = () => {
           <div>
             <div className="flex items-center gap-2 md:gap-3 flex-wrap">
               <h1 className="text-2xl md:text-4xl font-black tracking-tighter text-zinc-950 dark:text-white flex items-center gap-2">
-                MarketPulse <span className="text-primary font-black">v5.0 Pro</span>
+                MarketPulse <span className="text-primary font-black">V6.0 Pro</span>
               </h1>
               <div className="hidden sm:flex items-center gap-2">
                 {!loading ? (
@@ -324,7 +324,7 @@ export const MarketPulse = () => {
           <button 
             onClick={() => refresh()}
             disabled={loading}
-            className="flex items-center gap-2 px-3.5 py-1.5 md:px-5 md:py-2.5 bg-white/70 dark:bg-card border border-zinc-200 dark:border-white/5 rounded-md shadow-sm hover:bg-zinc-50 dark:hover:bg-accent/50 transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-zinc-950 dark:text-white backdrop-blur-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-3.5 py-1.5 md:px-5 md:py-2.5 bg-zinc-900 border border-zinc-800 rounded-md shadow-sm hover:bg-zinc-800 transition-colors font-black text-[9px] md:text-[10px] uppercase tracking-widest text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Manual refresh from Finnhub economic calendar"
           >
             <RefreshCcw size={12} className={cn("transition-transform duration-700 md:hidden", loading && "animate-spin text-primary")} />
@@ -336,10 +336,10 @@ export const MarketPulse = () => {
       </header>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 md:gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr_420px] gap-6 md:gap-8 items-start">
         
         {/* Sidebar Column - Desktop */}
-        <aside className="hidden lg:flex flex-col space-y-4 sticky top-10">
+        <aside className="hidden xl:flex flex-col space-y-4 sticky top-14">
           <SidebarContent 
             impactOptions={impactOptions}
             currencyOptions={currencyOptions}
@@ -362,14 +362,14 @@ export const MarketPulse = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsSidebarOpen(false)}
-                className="fixed inset-0 bg-zinc-950/20 backdrop-blur-sm z-[100] lg:hidden"
+                className="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm z-[100] lg:hidden transform-gpu"
               />
               <motion.aside
                 initial={{ x: "-100%" }}
                 animate={{ x: 0 }}
                 exit={{ x: "-100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="fixed top-0 left-0 bottom-0 w-[85vw] max-w-[320px] bg-white dark:bg-zinc-950 z-[101] lg:hidden overflow-y-auto p-6"
+                className="fixed top-0 left-0 bottom-0 w-[85vw] max-w-[320px] bg-zinc-950 border-r border-zinc-800 z-[101] lg:hidden overflow-y-auto p-6"
               >
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-2">
@@ -408,14 +408,14 @@ export const MarketPulse = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">v5.0_Pro_Feed</span>
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">v6.0_Pro_Feed</span>
             </div>
 
-            <div className="flex flex-col min-h-[500px] lg:min-h-screen overflow-x-hidden">
+            <div className="flex flex-col w-full overflow-x-hidden">
               {/* Desktop Table View */}
               <div className="hidden lg:block overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
                 <table className="w-full text-left table-fixed border-collapse">
-                  <thead className="text-[10px] uppercase bg-zinc-900/90 text-zinc-500 font-mono font-bold border-b border-zinc-800/80 tracking-wider sticky top-0 z-20 backdrop-blur-md">
+                  <thead className="text-[10px] uppercase bg-zinc-950 text-zinc-500 font-mono font-bold border-b border-zinc-800/80 tracking-wider sticky top-0 z-20 transform-gpu">
                     <tr>
                       <th className="px-3 py-2.5 w-[14%]">TIME / STATUS</th>
                       <th className="px-3 py-2.5 w-[8%] text-center">IMPACT</th>
@@ -465,7 +465,7 @@ export const MarketPulse = () => {
                                   exit={{ opacity: 0, scale: 0.98 }}
                                   transition={{ delay: idx * 0.015, duration: 0.2 }}
                                   className={cn(
-                                    "transition-colors group relative border-b border-zinc-800/60",
+                                    "transition-colors duration-150 group relative border-b border-zinc-800/60",
                                     isPassed && "opacity-45 hover:opacity-75 bg-transparent",
                                     isUpcoming && "opacity-100",
                                     isNextCatalyst 
@@ -473,7 +473,7 @@ export const MarketPulse = () => {
                                       : isHighImpact && !isPassed 
                                         ? "hover:bg-red-950/20"
                                         : "hover:bg-zinc-900/40",
-                                    isUpNext && isFlashingUpNext && "ring-1 ring-emerald-500/60 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-all duration-300"
+                                    isUpNext && isFlashingUpNext && "ring-1 ring-emerald-500/60 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-colors duration-150"
                                   )}
                                 >
                                   {/* Time & Real-Time Status Column (with Time Blanking) */}
@@ -739,25 +739,14 @@ export const MarketPulse = () => {
               </div>
             </div>
           </ShadcnCard>
-
-          {/* STRATEGIC_INTELLIGENCE_UNIT v5.0 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <StrategicIntelligenceUnit events={events} currencyFilter={currencyFilter} />
-          </motion.div>
-
-          {/* LIVE FINNHUB MARKET WIRE NEWS FEED */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <MarketNewsFeed />
-          </motion.div>
         </div>
+
+        {/* Column 3: Strategic Intelligence & News (420px) */}
+        <div className="space-y-6">
+          <StrategicIntelligenceUnit events={events} currencyFilter={currencyFilter} />
+          <MarketNewsFeed />
+        </div>
+
       </div>
     </div>
   );

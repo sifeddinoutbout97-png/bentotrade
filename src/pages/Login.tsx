@@ -199,7 +199,7 @@ export const Login = () => {
           <BTLogo size="md" />
           <div>
             <div className="text-xs font-mono font-semibold tracking-wider text-white flex items-center gap-2">
-              BENTOTRADE <span className="text-zinc-600 font-normal">v5 PRO</span>
+              BENTOTRADE <span className="text-emerald-400 font-bold">V6 PRO</span>
             </div>
             <div className="text-[10px] font-mono text-zinc-500 tracking-widest uppercase">
               QUANTITATIVE EXECUTION TERMINAL
@@ -212,7 +212,7 @@ export const Login = () => {
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[10px] font-mono tracking-widest text-zinc-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.5)] animate-pulse" />
-              SYSTEM_READY // REVISION_5.0
+              SYSTEM_READY // REVISION_6.0
             </div>
             <h1 className="text-2xl xl:text-3xl font-mono uppercase tracking-widest text-zinc-100 leading-snug font-light">
               Institutional edge, calibrated for the retail tape.
@@ -259,7 +259,7 @@ export const Login = () => {
               {/* Free Tier */}
               <div className="p-3 rounded-lg bg-black/40 border border-white/[0.05] space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-medium text-zinc-200">V5 Core</span>
+                  <span className="text-xs font-mono font-medium text-zinc-200">V6 Core</span>
                   <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.05] text-zinc-400 border border-white/[0.08]">STANDARD</span>
                 </div>
                 <div className="text-sm font-mono text-zinc-300 font-medium">Free</div>
@@ -295,7 +295,7 @@ export const Login = () => {
           <div className="lg:hidden flex items-center gap-2.5">
             <BTLogo size="sm" />
             <div className="text-xs font-mono font-semibold tracking-wider text-white">
-              BENTOTRADE <span className="text-zinc-600 font-normal">v5</span>
+              BENTOTRADE <span className="text-emerald-400 font-bold">V6</span>
             </div>
           </div>
           <div className="text-[10px] font-mono text-zinc-600 tracking-widest uppercase ml-auto">

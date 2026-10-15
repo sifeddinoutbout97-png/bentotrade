@@ -1,3 +1,8 @@
+/**
+ * BentoTrade V6.0 Command Core Broadcast Center Modal
+ * Handles system-wide broadcasts and dispatch ledger history.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { 
   Radio, 
@@ -19,9 +24,6 @@ import { toast } from 'sonner';
 import { 
   Dialog, 
   DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -52,7 +54,7 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ isOpen, onOpen
   // Ledger State
   const [recentBroadcasts, setRecentBroadcasts] = useState<Broadcast[]>([]);
 
-  // Fetch History & Subscribe
+  // Fetch History
   useEffect(() => {
     let isMounted = true;
     if (!isOpen) return;
@@ -74,95 +76,76 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ isOpen, onOpen
     };
 
     fetchHistory();
-
-    const channel = supabase.channel('broadcast-center-ledger');
-    
-    channel
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'broadcasts' 
-      }, (payload) => {
-        if (isMounted) {
-          setRecentBroadcasts(prev => [payload.new as Broadcast, ...(prev || [])].slice(0, 10));
-        }
-      })
-      .on('postgres_changes', { 
-        event: 'DELETE', 
-        schema: 'public', 
-        table: 'broadcasts' 
-      }, (payload) => {
-        if (isMounted) {
-          setRecentBroadcasts(prev => prev.filter(b => b.id !== payload.old.id));
-        }
-      })
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error("FAILED_TO_SYNC_LEDGER");
-        }
-      });
-
-    return () => {
-      isMounted = false;
-      supabase.removeChannel(channel);
-    };
   }, [isOpen]);
 
   const handleRecall = async (id: string) => {
-    // Custom confirm style for consistency
-    const confirmation = window.confirm("RECALL_SAFETY_PROTOCOL v1.1: ARE YOU SURE YOU WANT TO TERMINATE THIS BROADCAST?");
-    if (!confirmation) return;
-
     try {
       const { error } = await supabase
         .from('broadcasts')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
-      toast.success("RECALL_SUCCESS: BROADCAST_TERMINATED");
+      if (!error) {
+        setRecentBroadcasts(prev => prev.filter(b => b.id !== id));
+        toast.success("Broadcast recalled");
+      }
     } catch (err) {
       console.error("RECALL_FAILED:", err);
-      toast.error("COMM_ERROR: RECALL_LINK_FAILED");
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (window.confirm("ARE YOU SURE YOU WANT TO CLEAR ALL BROADCAST HISTORY?")) {
+      try {
+        const { error } = await supabase
+          .from('broadcasts')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+
+        if (!error) {
+          setRecentBroadcasts([]);
+          toast.success("Broadcast history cleared");
+        }
+      } catch (err) {
+        toast.error("Failed to clear broadcast history");
+      }
     }
   };
 
   const handleTransmit = async () => {
     if (!broadcastMessage.trim()) {
-      toast.error("COMM_ERROR: EMPTY_PAYLOAD");
-      return;
-    }
-
-    if (targetType !== 'all' && !targetValue.trim()) {
-      toast.error("COMM_ERROR: TARGET_MISSING");
+      toast.error("EMPTY_PAYLOAD");
       return;
     }
 
     setIsSending(true);
     try {
-      // Use logical OR to ensure we have a valid sender ID, prioritizing impersonation if active
       const finalSenderId = impersonatingUserId || user?.id;
 
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('broadcasts')
         .insert([{ 
           message: broadcastMessage.trim(), 
           level: broadcastLevel,
           target_type: targetType,
-          target_value: targetType === 'all' ? null : targetValue.trim().toUpperCase(),
-          sender_id: finalSenderId,
-          created_at: new Date().toISOString() 
-        }]);
+          target_value: targetValue || undefined,
+          user_id: finalSenderId
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
-      
-      toast.success("TRANSMISSION_SUCCESS: PAYLOAD_DISPATCHED");
+
+      if (data) {
+        setRecentBroadcasts(prev => [data as Broadcast, ...prev]);
+      }
+
+      toast.success("TRANSMIT_SUCCESS: BROADCAST DISPATCHED");
       setBroadcastMessage('');
       setTargetValue('');
-      onOpenChange(false);
-    } catch (err) {
-      console.error("TRANSMISSION_FAILED:", err);
-      toast.error("FATAL_ERROR: LINK_FAILURE");
+    } catch (err: any) {
+      console.error("TRANSMIT_FAILED:", err);
+      toast.error(err?.message || "TRANSMIT_FAILED");
     } finally {
       setIsSending(false);
     }
@@ -170,286 +153,139 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ isOpen, onOpen
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full sm:max-w-[90vw] lg:max-w-6xl !max-w-6xl bg-black/90 border-white/10 rounded-[1.5rem] p-0 shadow-2xl backdrop-blur-3xl overflow-hidden ring-0 outline-none border">
-        <div className="grid grid-cols-1 lg:grid-cols-12 h-[600px]">
-          {/* Left Section: Transmission Control (7 cols) */}
-          <div className="lg:col-span-7 p-10 flex flex-col h-full overflow-y-auto scrollbar-hide border-r border-white/5">
-            <header className="mb-8 shrink-0">
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/20">
-                  <Terminal size={28} className="animate-pulse" />
+      <DialogContent className="sm:max-w-6xl !max-w-6xl w-[95vw] h-[85vh] max-h-[85vh] rounded-3xl bg-zinc-950 border-zinc-800 p-0 shadow-2xl overflow-hidden font-mono flex flex-col">
+        <div className="grid grid-cols-1 lg:grid-cols-12 flex-1 overflow-hidden">
+          
+          {/* Left Form (7 cols) */}
+          <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col h-full overflow-y-auto custom-scrollbar border-r border-zinc-800/80">
+            <header className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <Radio size={20} />
                 </div>
                 <div>
-                  <DialogTitle className="text-3xl font-black text-white tracking-[0.25em] uppercase leading-none mb-2">
-                    COMMAND_CORE
-                  </DialogTitle>
-                  <DialogDescription className="text-zinc-500 font-bold text-[10px] tracking-[0.5em] uppercase opacity-60 flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    Secure Uplink Established • Protocol v3.5
-                  </DialogDescription>
+                  <h3 className="text-base font-bold text-white uppercase tracking-wider">COMMAND CORE BROADCAST</h3>
+                  <p className="text-xs text-zinc-500 uppercase">System-Wide Telemetry Dispatcher</p>
                 </div>
               </div>
             </header>
 
-            <div className="flex-1 space-y-8">
-              {/* Target Selection */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 flex items-center gap-3 px-1">
-                  <div className="w-1 h-3 bg-purple-600 rounded-full" />
-                  Routing_Parameters
-                </label>
-                
-                <div className="flex p-1.5 bg-white/[0.02] border border-white/10 rounded-xl">
-                  {['all', 'ticker', 'sector'].map((type) => (
+            <div className="space-y-5 flex-1">
+              {/* Target Type */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">TARGET NODE</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['all', 'ticker', 'sector'] as const).map(type => (
                     <button
                       key={type}
-                      onClick={() => setTargetType(type as any)}
+                      type="button"
+                      onClick={() => setTargetType(type)}
                       className={cn(
-                        "flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500 relative overflow-hidden group",
-                        targetType === type 
-                          ? "text-white" 
-                          : "text-zinc-600 hover:text-zinc-400"
+                        "py-2 rounded-xl text-xs font-bold uppercase border transition-all",
+                        targetType === type ? "bg-purple-500/20 text-purple-300 border-purple-500/40" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
                       )}
                     >
-                      {targetType === type && (
-                        <motion.div 
-                          layoutId="activeTabBroadcast"
-                          className="absolute inset-0 bg-white/5 border border-white/10 shadow-[inset_0_0_30px_rgba(255,255,255,0.03)]"
-                          initial={false}
-                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                        />
-                      )}
-                      <span className="relative z-10">{type}</span>
+                      {type}
                     </button>
                   ))}
                 </div>
-
-                {targetType !== 'all' && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="pt-1"
-                  >
-                    {targetType === 'ticker' ? (
-                      <div className="relative group">
-                        <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-zinc-600 group-focus-within:text-purple-500 transition-colors">
-                          <Zap size={14} />
-                        </div>
-                        <input 
-                          type="text"
-                          placeholder="IDENTIFIER_TAG (e.g., BTC, ES...)"
-                          value={targetValue}
-                          onChange={(e) => setTargetValue(e.target.value.toUpperCase())}
-                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-12 pr-6 py-4 text-xs font-black text-white placeholder:text-zinc-800 focus:outline-none focus:border-purple-500/50 transition-all uppercase tracking-[0.2em] font-mono"
-                        />
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-4 gap-2">
-                        {['Futures', 'Forex', 'Crypto', 'Stocks'].map((sector) => (
-                          <button
-                            key={sector}
-                            onClick={() => setTargetValue(sector)}
-                            className={cn(
-                              "py-3 rounded-xl text-[9px] font-black uppercase tracking-[0.25em] border transition-all duration-500",
-                              targetValue === sector 
-                                ? "bg-purple-500/20 border-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.1)]" 
-                                : "bg-white/[0.01] border-white/5 text-zinc-600 hover:border-white/20 hover:text-zinc-400"
-                            )}
-                          >
-                            {sector}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
               </div>
 
-              {/* Priority Matrix */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 flex items-center gap-3 px-1">
-                  <div className="w-1 h-3 bg-purple-600 rounded-full" />
-                  Priority_Vector
-                </label>
-                <div className="flex gap-3">
-                  {[
-                    { id: 'info', color: 'blue', label: 'INFO', icon: Info, glow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)]' },
-                    { id: 'success', color: 'emerald', label: 'OPTIM', icon: Zap, glow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' },
-                    { id: 'warning', color: 'amber', label: 'WARN', icon: ShieldAlert, glow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' },
-                    { id: 'emergency', color: 'rose', label: 'CRIT', icon: Radio, glow: 'shadow-[0_0_15px_rgba(244,63,94,0.3)]' },
-                  ].map((level) => {
-                    const isActive = broadcastLevel === level.id;
-                    return (
-                      <button
-                        key={level.id}
-                        onClick={() => setBroadcastLevel(level.id as any)}
-                        className={cn(
-                          "flex-1 h-14 rounded-xl border transition-all duration-500 flex flex-col items-center justify-center gap-1 group relative overflow-hidden",
-                          isActive 
-                            ? `border-${level.color}-500 bg-${level.color}-500/10 ${level.glow}` 
-                            : "border-white/5 bg-white/[0.01] hover:border-white/20"
-                        )}
-                      >
-                        <span className={cn(
-                          "text-[9px] font-black tracking-[0.2em] transition-colors relative z-10",
-                          isActive ? `text-white` : "text-zinc-600 group-hover:text-zinc-500"
-                        )}>
-                          {level.label}
-                        </span>
-                        <div className={cn(
-                          "h-0.5 w-4 rounded-full transition-all duration-500 relative z-10",
-                          isActive ? `bg-${level.color}-500` : "bg-zinc-800"
-                        )} />
-                      </button>
-                    );
-                  })}
+              {/* Priority */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">PRIORITY LEVEL</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(['info', 'success', 'warning', 'emergency'] as const).map(lvl => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setBroadcastLevel(lvl)}
+                      className={cn(
+                        "py-2 rounded-xl text-xs font-bold uppercase border transition-all",
+                        broadcastLevel === lvl ? "bg-purple-500/20 text-purple-300 border-purple-500/40" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                      )}
+                    >
+                      {lvl}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {/* Payload Field */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 flex items-center gap-3 px-1">
-                  <div className="w-1 h-3 bg-purple-600 rounded-full" />
-                  Payload_Sequence
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={broadcastMessage}
-                    onChange={(e) => setBroadcastMessage(e.target.value)}
-                    placeholder="ENTER RAW COMMUNICATIONS DATA..."
-                    className="w-full h-40 bg-zinc-950/50 border border-white/10 rounded-2xl p-6 text-white placeholder:text-zinc-800 focus:outline-none focus:border-purple-500/50 transition-all resize-none text-xs font-mono leading-relaxed"
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">BROADCAST PAYLOAD</label>
+                <textarea
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  placeholder="Enter broadcast message to dispatch to connected platform clients..."
+                  className="w-full h-32 p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-500/60 font-mono resize-none"
+                />
               </div>
             </div>
 
-            {/* Footer Actions */}
-            <footer className="pt-8 mt-auto flex items-center justify-end gap-6 shrink-0">
-              <Button 
-                variant="ghost" 
+            {/* Footer Buttons */}
+            <footer className="pt-4 mt-auto border-t border-zinc-800/80 flex items-center justify-end gap-3 shrink-0">
+              <Button
+                variant="ghost"
                 onClick={() => onOpenChange(false)}
-                className="text-zinc-600 font-black uppercase tracking-[0.3em] text-[9px] hover:bg-white/5 h-12 px-6 rounded-xl transition-all"
+                className="text-zinc-400 hover:text-white text-xs h-10 px-4 rounded-xl"
               >
-                ABORT_LINK
+                Abort
               </Button>
-              <Button 
+              <Button
                 onClick={handleTransmit}
                 disabled={isSending || !broadcastMessage.trim()}
-                className="bg-purple-600 hover:bg-purple-500 text-white font-black uppercase tracking-[0.4em] text-[10px] h-12 px-10 rounded-xl shadow-[0_0_40px_rgba(147,51,234,0.3)] disabled:opacity-50 transition-all group overflow-hidden"
+                className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-10 px-6 rounded-xl shadow-lg shadow-purple-500/20 flex items-center gap-2"
               >
-                <span className="relative z-10 flex items-center gap-3">
-                  {isSending ? (
-                    <>
-                      <RefreshCw size={14} className="animate-spin" />
-                      DISPATCHING...
-                    </>
-                  ) : (
-                    <>
-                      TRANSMIT_DATA
-                      <Radio size={14} />
-                    </>
-                  )}
-                </span>
+                {isSending ? <RefreshCw size={14} className="animate-spin" /> : <Radio size={14} />}
+                <span>TRANSMIT_DATA</span>
               </Button>
             </footer>
           </div>
 
-          {/* Right Section: Dispatch Ledger (5 cols) */}
-          <div className="hidden lg:flex lg:col-span-5 bg-zinc-950/40 border-l border-white/5 flex-col h-full overflow-hidden">
-            <header className="p-8 border-b border-white/5 bg-gradient-to-br from-white/[0.02] to-transparent shrink-0">
-              <div className="flex items-center justify-between mb-3 leading-none">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
-                  TRADE_LOGGING_ENGINE 
-                  <span className="text-[8px] font-mono text-emerald-500 font-bold tracking-normal opacity-80 decoration-emerald-500/20 underline underline-offset-2 uppercase">[STATUS: VERIFIED • v2.5]</span>
-                </h4>
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[9px] font-mono text-emerald-500/60 font-bold">LIVE</span>
-                </div>
-              </div>
-              <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] leading-relaxed">
-                High-fidelity telemetry for system-wide auditing.
-              </p>
+          {/* Right Ledger (5 cols) */}
+          <div className="hidden lg:flex lg:col-span-5 bg-zinc-900/30 flex-col h-full overflow-hidden">
+            <header className="p-6 border-b border-zinc-800/80 flex items-center justify-between shrink-0">
+              <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Broadcast History</span>
+              {recentBroadcasts.length > 0 && (
+                <button
+                  onClick={handleClearHistory}
+                  className="px-2.5 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold uppercase transition-colors"
+                >
+                  Clear History
+                </button>
+              )}
             </header>
-            
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-hide">
-              {recentBroadcasts?.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center opacity-10 space-y-6">
-                  <Radio size={64} className="text-zinc-600" />
-                  <p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-600">STATIC_IDLE</p>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+              {recentBroadcasts.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-zinc-600 space-y-2">
+                  <Radio size={32} />
+                  <span className="text-xs font-bold uppercase">No Active Broadcasts</span>
                 </div>
               ) : (
-                recentBroadcasts?.map((log) => (
-                  <div 
-                    key={log.id} 
-                    className="p-5 rounded-xl bg-white/[0.02] border border-white/5 space-y-3 group hover:bg-white/[0.04] transition-all relative overflow-hidden"
-                  >
-                    <div className="flex justify-between items-center relative z-10">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-1.5 h-1.5 rounded-full",
-                          log.level === 'emergency' ? 'bg-rose-500' : 
-                          log.level === 'warning' ? 'bg-amber-500' : 
-                          log.level === 'success' ? 'bg-emerald-500' : 
-                          'bg-blue-500'
-                        )} />
-                        <span className={cn(
-                          "text-[9px] font-black uppercase tracking-[0.3em]",
-                          log.level === 'emergency' ? 'text-rose-500' : 
-                          log.level === 'warning' ? 'text-amber-500' : 
-                          log.level === 'success' ? 'text-emerald-500' : 
-                          'text-blue-500'
-                        )}>
-                          {log.level}
-                        </span>
-                      </div>
-                      <span className="text-[9px] font-mono text-zinc-600 font-bold">
-                        {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                      </span>
-                      <button 
-                        onClick={() => handleRecall(log.id)}
-                        className="ml-3 p-1.5 rounded-lg bg-rose-500/10 text-rose-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white border border-rose-500/20"
-                        title="Recall Broadcast"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                recentBroadcasts.map(b => (
+                  <div key={b.id} className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1.5 relative group">
+                    <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                      <span className="font-bold text-purple-400 uppercase">[{b.level}]</span>
+                      <span>{new Date(b.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
-                    
-                    <p className="text-[10px] font-medium text-zinc-400 leading-relaxed tracking-wide italic relative z-10 line-clamp-2">
-                       "{log.message}"
-                    </p>
-                    
-                    <div className="flex items-center justify-between pt-3 border-t border-white/5 relative z-10">
-                      <div className="flex items-center gap-2">
-                        <Cpu size={12} className="text-zinc-700" />
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-zinc-600">
-                          NODE::{log.target_type}
-                        </span>
-                      </div>
-                      {log.target_value && (
-                        <span className="text-[9px] font-mono font-black text-purple-400/50 tracking-tighter">
-                          [{log.target_value}]
-                        </span>
-                      )}
-                    </div>
+                    <p className="text-xs text-zinc-200">{b.message}</p>
+                    <button
+                      onClick={() => handleRecall(b.id)}
+                      className="absolute top-2 right-2 p-1 rounded bg-rose-500/10 text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete entry"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
                 ))
               )}
             </div>
-
-            <footer className="p-6 bg-black/40 border-t border-white/5 shrink-0">
-              <div className="flex items-center justify-between opacity-30">
-                <div className="flex items-center gap-3">
-                  <Database size={14} className="text-zinc-600" />
-                  <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.3em]">END_LOG</span>
-                </div>
-                <span className="text-[9px] font-mono text-zinc-700 font-bold tracking-tight">SEC_04</span>
-              </div>
-            </footer>
           </div>
+
         </div>
       </DialogContent>
     </Dialog>
-
   );
 };

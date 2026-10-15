@@ -310,7 +310,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
         </div>
 
         {/* SHARPE RATIO Card */}
-        <div className="min-w-0 overflow-hidden rounded-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-5 sm:p-7 md:p-8 flex flex-col justify-between transition-all duration-300 hover:bg-white/[0.03]">
+        <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-5 sm:p-7 md:p-8 flex flex-col justify-between transition-colors duration-150 hover:bg-zinc-900/60">
           <div className="min-w-0">
             <span className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono block mb-3 truncate">
               Sharpe Ratio
@@ -338,7 +338,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
         </div>
 
         {/* MAX DRAWDOWN Card */}
-        <div className="min-w-0 overflow-hidden rounded-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-5 sm:p-7 md:p-8 flex flex-col justify-between transition-all duration-300 hover:bg-white/[0.03]">
+        <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-5 sm:p-7 md:p-8 flex flex-col justify-between transition-colors duration-150 hover:bg-zinc-900/60">
           <div className="min-w-0">
             <span className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono block mb-3 truncate">
               Max Drawdown
@@ -368,7 +368,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
       </div>
 
       {/* 2. Cumulative Equity & Drawdown Watermark Curve */}
-      <div className="min-w-0 overflow-hidden rounded-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-5 sm:p-7 md:p-8 space-y-6 transition-all duration-300 hover:bg-white/[0.03]">
+      <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-5 sm:p-7 md:p-8 space-y-6 transition-colors duration-150 hover:bg-zinc-900/60">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.03] pb-4">
           <div>
             <h3 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
@@ -450,7 +450,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
                       const data = payload[0].payload;
                       const ddDepth = data.watermark - data.equity;
                       return (
-                        <div className="p-3.5 rounded-xl bg-[#0a0a0a]/95 border border-white/10 shadow-2xl text-xs font-mono space-y-1.5 text-zinc-200 backdrop-blur-md min-w-[210px]">
+                        <div className="p-3.5 rounded-xl bg-[#0a0a0a] border border-white/10 shadow-2xl text-xs font-mono space-y-1.5 text-zinc-200 min-w-[210px]">
                           <div className="flex items-center justify-between border-b border-white/[0.06] pb-1.5">
                             <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
                               Trade #{data.tradeIndex} {data.ticker ? `(${data.ticker})` : ''}
@@ -514,6 +514,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
                   strokeWidth={2} 
                   fillOpacity={1} 
                   fill="url(#quantEquityGrad)" 
+                  isAnimationActive={false}
                 />
 
                 {/* Drawdown Area (Below zero / underwater) */}
@@ -525,6 +526,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
                   strokeDasharray="2 2" 
                   fillOpacity={1} 
                   fill="url(#quantDdGrad)" 
+                  isAnimationActive={false}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -540,7 +542,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 min-w-0">
         
         {/* Module A: Execution Quality (MFE / MAE) */}
-        <div className="min-w-0 overflow-hidden rounded-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-5 sm:p-7 md:p-8 space-y-5 transition-all duration-300 hover:bg-white/[0.03]">
+        <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-5 sm:p-7 md:p-8 space-y-5 transition-colors duration-150 hover:bg-zinc-900/60">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.03] pb-4">
             <div className="min-w-0">
               <h4 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono truncate">
@@ -606,7 +608,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
         </div>
 
         {/* Module B: Directional Edge (Long vs Short) */}
-        <div className="min-w-0 overflow-hidden rounded-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-5 sm:p-7 md:p-8 space-y-5 transition-all duration-300 hover:bg-white/[0.03]">
+        <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-5 sm:p-7 md:p-8 space-y-5 transition-colors duration-150 hover:bg-zinc-900/60">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.03] pb-4">
             <div className="min-w-0">
               <h4 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono truncate">
@@ -699,7 +701,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
       </div>
 
       {/* 4. Session Performance Table */}
-      <div className="min-w-0 overflow-hidden rounded-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-5 sm:p-7 md:p-8 space-y-5 transition-all duration-300 hover:bg-white/[0.03]">
+      <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-5 sm:p-7 md:p-8 space-y-5 transition-colors duration-150 hover:bg-zinc-900/60">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.03] pb-4">
           <div className="min-w-0">
             <h4 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono truncate">
@@ -764,7 +766,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
       {/* 5. Streaks & Risk-of-Ruin Telemetry Bento Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0">
         {/* Win/Loss Streaks */}
-        <div className="min-w-0 overflow-hidden rounded-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-5 sm:p-7 md:p-8 space-y-6 transition-all duration-300 hover:bg-white/[0.03]">
+        <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-5 sm:p-7 md:p-8 space-y-6 transition-colors duration-150 hover:bg-zinc-900/60">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.03] pb-4">
             <h4 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono truncate">
               Streak Velocity
@@ -804,7 +806,7 @@ export const QuantMetricsGrid: React.FC<QuantMetricsGridProps> = ({
         </div>
 
         {/* Risk of Ruin */}
-        <div className="min-w-0 overflow-hidden rounded-2xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-5 sm:p-7 md:p-8 space-y-6 transition-all duration-300 hover:bg-white/[0.03]">
+        <div className="min-w-0 overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-5 sm:p-7 md:p-8 space-y-6 transition-colors duration-150 hover:bg-zinc-900/60">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.03] pb-4">
             <h4 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono truncate">
               Risk-of-Ruin Telemetry

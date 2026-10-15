@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   const isPositiveTrade = data.tradePnl >= 0;
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#050505]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl p-3.5 text-zinc-100 font-mono min-w-[200px] space-y-2 z-50">
+    <div className="rounded-xl border border-white/[0.08] bg-[#050505]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] p-3.5 text-zinc-100 font-mono min-w-[200px] space-y-2 z-50">
       <div className="flex items-center justify-between border-b border-white/[0.05] pb-1.5 text-[10px] text-zinc-500">
         <span className="font-semibold text-zinc-400">{data.date}</span>
         <span className="font-bold text-zinc-200 uppercase tracking-wider">${data.ticker}</span>
@@ -187,7 +187,7 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="bg-[#050505] text-zinc-100 -m-4 sm:-m-6 md:-m-8 p-4 sm:p-6 md:p-8 min-h-full rounded-none md:rounded-3xl border-0 md:border md:border-white/[0.03] animate-in fade-in duration-500 space-y-5">
+    <div className="w-full max-w-[1600px] mx-auto text-zinc-100 animate-in fade-in duration-500 space-y-6 pb-20">
       {/* 1. Minimalist Top Row: Tiny inline pill sitting quietly above the Equity Curve + Journal action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <DynamicAIDirective trades={trades || []} />
@@ -206,7 +206,7 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 lg:gap-6 items-stretch">
         
         {/* HERO COMPONENT: Equity Curve (Spans 8 columns on desktop) */}
-        <div className="lg:col-span-8 flex flex-col rounded-2xl bg-white/[0.015] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-6 sm:p-7 md:p-8 transition-all duration-300 hover:bg-white/[0.03] group">
+        <div className="lg:col-span-8 flex flex-col rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-2xl p-6 sm:p-7 md:p-8 transition-colors duration-150 group">
           <div className="flex items-center justify-between gap-3 mb-6">
             <div>
               <h2 className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
@@ -227,7 +227,7 @@ export const Dashboard = () => {
           </div>
 
           {/* Chart Container strictly wrapped with defined height (Rule 4) */}
-          <div className="h-[320px] sm:h-[360px] min-h-[320px] w-full mt-auto">
+          <div className="h-[320px] sm:h-[360px] min-h-[320px] w-full mt-auto relative">
             {chartData.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-4 border border-dashed border-white/[0.03] rounded-xl space-y-1">
                 <p className="text-xs font-mono text-zinc-600">Awaiting closed trades to plot equity curve</p>
@@ -269,6 +269,7 @@ export const Dashboard = () => {
                     strokeWidth={1} 
                     fillOpacity={1} 
                     fill="url(#equityGradient)" 
+                    isAnimationActive={false}
                     activeDot={{ r: 3.5, fill: '#34d399', stroke: '#050505', strokeWidth: 1.5 }}
                   />
                 </AreaChart>
@@ -281,7 +282,7 @@ export const Dashboard = () => {
         <div className="lg:col-span-4 flex flex-col gap-5 lg:gap-6 justify-between">
           
           {/* KPI Card 1: Total Net Realized PnL with Sparkline (Primary Net Only) */}
-          <div className="rounded-2xl bg-white/[0.015] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-6 sm:p-7 md:p-8 transition-all duration-300 hover:bg-white/[0.03] flex flex-col justify-between">
+          <div className="rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-6 sm:p-7 md:p-8 transition-colors duration-150 flex flex-col justify-between">
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.03]">
               <span className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
                 Total Net Realized P/L
@@ -307,7 +308,7 @@ export const Dashboard = () => {
 
               {/* Minimalist Sparkline: no axes, no grids, no tooltips */}
               {pnlSparklineData.length > 1 && (
-                <div className="h-10 w-28 sm:w-32 shrink-0">
+                <div className="h-10 w-28 sm:w-32 shrink-0 relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={pnlSparklineData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                       <defs>
@@ -332,7 +333,7 @@ export const Dashboard = () => {
           </div>
 
           {/* KPI Card 2: Win Rate with Sparkline */}
-          <div className="rounded-2xl bg-white/[0.015] backdrop-blur-2xl border border-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] p-6 sm:p-7 md:p-8 transition-all duration-300 hover:bg-white/[0.03] flex flex-col justify-between">
+          <div className="rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-xl p-6 sm:p-7 md:p-8 transition-colors duration-150 flex flex-col justify-between">
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.03]">
               <span className="text-xs font-medium tracking-widest text-zinc-600 uppercase font-mono">
                 Win Rate & Payoff Ratio
@@ -351,7 +352,7 @@ export const Dashboard = () => {
 
               {/* Minimalist Sparkline: monochrome grayscale line */}
               {winRateSparklineData.length > 1 && (
-                <div className="h-10 w-28 sm:w-32 shrink-0">
+                <div className="h-10 w-28 sm:w-32 shrink-0 relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={winRateSparklineData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                       <defs>

@@ -1,4 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+/**
+ * BentoTrade V6.0 Global Command Palette
+ * Interactive keyboard-first modal with natural-language trade command parser and quick navigation.
+ */
+
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Command } from 'cmdk';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from './ThemeProvider';
@@ -14,12 +19,73 @@ import {
   ShieldCheck, 
   BookOpen, 
   Activity, 
-  Command as CommandIcon 
+  Command as CommandIcon,
+  Zap,
+  ArrowRight,
+  Flame,
+  Calendar,
+  Sparkles
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getContractSpec } from '@/lib/quant-engine/multipliers';
+import { useTrades } from '@/context/TradeContext';
 
-interface BentoCommandPaletteProps {
+interface ParsedTradeCommand {
+  direction: 'long' | 'short';
+  size: number;
+  ticker: string;
+  entryPrice: number;
+  stopLoss: number;
+  takeProfit: number;
+  dollarRisk: number;
+  dollarReward: number;
+  rrRatio: number;
+  multiplier: number;
+}
+
+function parseTradeCommandString(query: string): ParsedTradeCommand | null {
+  if (!query) return null;
+  const q = query.trim();
+
+  // Pattern: (Long|Short) (\d+) (\w+) @? (\d+(?:\.\d+)?) (?:SL|sl)? (\d+(?:\.\d+)?) (?:TP|tp)? (\d+(?:\.\d+)?)
+  const regex = /^(long|short)\s+(\d+)\s+([a-zA-Z0-9\/]+)(?:\s+@?\s*(\d+(?:\.\d+)?))?(?:\s+(?:SL|sl)\s+(\d+(?:\.\d+)?))?(?:\s+(?:TP|tp)\s+(\d+(?:\.\d+)?))?/i;
+  const match = q.match(regex);
+
+  if (!match) return null;
+
+  const direction = match[1].toLowerCase() === 'short' ? 'short' : 'long';
+  const size = parseInt(match[2], 10) || 1;
+  const ticker = match[3].toUpperCase();
+  const entryPrice = parseFloat(match[4]) || 0;
+  const stopLoss = parseFloat(match[5]) || 0;
+  const takeProfit = parseFloat(match[6]) || 0;
+
+  const spec = getContractSpec(ticker);
+  const multiplier = spec.multiplier || 1;
+
+  const riskPts = stopLoss > 0 ? Math.abs(entryPrice - stopLoss) : 0;
+  const rewardPts = takeProfit > 0 ? Math.abs(takeProfit - entryPrice) : 0;
+
+  const dollarRisk = riskPts * multiplier * size;
+  const dollarReward = rewardPts * multiplier * size;
+  const rrRatio = riskPts > 0 ? Number((rewardPts / riskPts).toFixed(2)) : 0;
+
+  return {
+    direction,
+    size,
+    ticker,
+    entryPrice,
+    stopLoss,
+    takeProfit,
+    dollarRisk,
+    dollarReward,
+    rrRatio,
+    multiplier
+  };
+}
+
+export interface BentoCommandPaletteProps {
   onOpenLogTrade?: () => void;
   onRunMonteCarlo?: () => void;
 }
@@ -29,10 +95,12 @@ export const BentoCommandPalette: React.FC<BentoCommandPaletteProps> = ({
   onRunMonteCarlo
 }) => {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const { createTrade } = useTrades();
 
-  // Listen for Ctrl+K / Cmd+K
+  // Listen for Ctrl+K / Cmd+K and custom event
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
@@ -44,203 +112,232 @@ export const BentoCommandPalette: React.FC<BentoCommandPaletteProps> = ({
       }
     };
 
+    const handleCustomOpen = () => setOpen(true);
+
     document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    window.addEventListener('bt_open_command_palette', handleCustomOpen);
+
+    return () => {
+      document.removeEventListener('keydown', down);
+      window.removeEventListener('bt_open_command_palette', handleCustomOpen);
+    };
   }, [open]);
+
+  const parsedTrade = useMemo(() => parseTradeCommandString(query), [query]);
 
   const runCommand = useCallback((command: () => void) => {
     setOpen(false);
+    setQuery('');
     command();
   }, []);
 
+  const handleExecuteParsedTrade = async () => {
+    if (!parsedTrade || parsedTrade.entryPrice <= 0) return;
+
+    try {
+      await createTrade({
+        ticker: parsedTrade.ticker,
+        direction: parsedTrade.direction,
+        position_size: parsedTrade.size,
+        entry_price: parsedTrade.entryPrice,
+        exit_price: parsedTrade.takeProfit || parsedTrade.entryPrice,
+        stop_loss: parsedTrade.stopLoss,
+        trade_date: new Date().toISOString().split('T')[0],
+        status: 'open',
+        pnl: 0,
+        fees: parsedTrade.ticker.startsWith('M') ? 1.24 * parsedTrade.size : 4.20 * parsedTrade.size,
+        risk_reward_ratio: parsedTrade.rrRatio,
+        notes: `Executed via V6.0 Command Palette NL Parser (${query})`
+      });
+
+      toast.success(`Trade logged: ${parsedTrade.direction.toUpperCase()} ${parsedTrade.size} ${parsedTrade.ticker} @ $${parsedTrade.entryPrice}`);
+      setOpen(false);
+      setQuery('');
+      navigate('/journal-history');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to execute trade command');
+    }
+  };
+
   return (
     <>
-      {/* Floating Trigger Pill for Mobile/Mouse users */}
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 hidden md:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-zinc-950/80 dark:bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-white shadow-2xl backdrop-blur-xl text-xs font-mono transition-all hover:scale-105"
-      >
-        <CommandIcon size={14} className="text-primary" />
-        <span>Command Menu</span>
-        <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] text-zinc-300 font-bold border border-zinc-700">
-          ⌘K
-        </kbd>
-      </button>
-
-      {/* Headless Command Palette Modal */}
+      {/* Modal Overlay */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150">
-          {/* Backdrop click to close */}
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-150">
           <div 
             className="absolute inset-0 -z-10" 
             onClick={() => setOpen(false)} 
           />
 
-          <div className="w-full max-w-2xl rounded-3xl bg-gray-900/90 border border-zinc-800 shadow-2xl backdrop-blur-2xl overflow-hidden text-white divide-y divide-zinc-800 animate-in zoom-in-95 duration-150">
-            <Command label="BentoTrade Command Menu" className="w-full">
-              {/* Search Bar Input */}
-              <div className="flex items-center px-5 py-4 gap-3 bg-zinc-950/40">
-                <Search size={18} className="text-primary shrink-0" />
+          <div className="w-full max-w-2xl rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl overflow-hidden text-white divide-y divide-zinc-800/80 animate-in zoom-in-95 duration-150 font-mono">
+            
+            <Command label="BentoTrade V6.0 Command Menu" className="w-full">
+              {/* Command Input */}
+              <div className="flex items-center px-4 py-3.5 gap-3 bg-zinc-900/60">
+                <Search size={18} className="text-emerald-400 shrink-0" />
                 <Command.Input
-                  placeholder="Type a quant command or search actions..."
-                  className="w-full bg-transparent text-sm md:text-base text-white placeholder-zinc-500 outline-none font-medium"
+                  value={query}
+                  onValueChange={setQuery}
+                  placeholder="Type a command or trade (e.g. 'Long 2 MNQ @ 20150 SL 20120 TP 20210')..."
+                  className="w-full bg-transparent text-sm text-white placeholder-zinc-500 outline-none font-mono font-medium"
                   autoFocus
                 />
-                <kbd className="px-2 py-0.5 rounded bg-zinc-800 text-[11px] font-mono text-zinc-400 border border-zinc-700">
+                <kbd className="px-2 py-0.5 rounded bg-zinc-900 text-[10px] font-mono text-zinc-400 border border-zinc-800">
                   ESC
                 </kbd>
               </div>
 
-              {/* Suggestions / Groups */}
-              <Command.List className="max-h-[380px] overflow-y-auto p-3 space-y-3 font-sans">
-                <Command.Empty className="p-8 text-center text-xs font-mono text-zinc-500">
-                  No matching quant commands found.
+              {/* Natural Language Trade Preview Card */}
+              {parsedTrade && (
+                <div className="p-4 bg-emerald-500/10 border-b border-emerald-500/30 space-y-3 font-mono">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Zap size={15} className="text-emerald-400" />
+                      <span className="text-xs font-bold text-white uppercase tracking-wider">
+                        LIVE TRADE COMMAND DETECTED
+                      </span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 uppercase font-black">
+                      {parsedTrade.direction.toUpperCase()} {parsedTrade.size}x {parsedTrade.ticker}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="p-2 rounded bg-zinc-950 border border-zinc-800">
+                      <span className="text-[9px] text-zinc-500 uppercase block">ENTRY PRICE</span>
+                      <span className="font-bold text-white">${parsedTrade.entryPrice || '—'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-zinc-950 border border-zinc-800">
+                      <span className="text-[9px] text-zinc-500 uppercase block">STOP LOSS</span>
+                      <span className="font-bold text-rose-400">${parsedTrade.stopLoss || '—'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-zinc-950 border border-zinc-800">
+                      <span className="text-[9px] text-zinc-500 uppercase block">PLANNED R:R</span>
+                      <span className="font-bold text-emerald-400">1:{parsedTrade.rrRatio}</span>
+                    </div>
+                    <div className="p-2 rounded bg-zinc-950 border border-zinc-800">
+                      <span className="text-[9px] text-zinc-500 uppercase block">MAX DOLLAR RISK</span>
+                      <span className="font-bold text-amber-400">-${parsedTrade.dollarRisk.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] text-zinc-400">
+                      Contract Multiplier: ${parsedTrade.multiplier}/pt
+                    </span>
+                    <button
+                      onClick={handleExecuteParsedTrade}
+                      disabled={parsedTrade.entryPrice <= 0}
+                      className="px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-xs transition-all flex items-center gap-1.5 disabled:opacity-40 shadow-md shadow-emerald-500/20"
+                    >
+                      <span>Enter ↵ Log Trade to Journal</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Suggestions / List */}
+              <Command.List className="max-h-[340px] overflow-y-auto p-2 space-y-2 font-mono">
+                <Command.Empty className="p-6 text-center text-xs text-zinc-500">
+                  No matching quant commands or pages.
                 </Command.Empty>
 
-                {/* Group 1: Trading */}
-                <Command.Group heading="Trading Actions" className="text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-400 px-3 py-1">
+                {/* Group 1: Navigation & AI Labs */}
+                <Command.Group heading="QUICK NAV & AI QUANT LAB" className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 px-3 py-1">
+                  
                   <Command.Item
-                    onSelect={() => runCommand(() => {
-                      if (onOpenLogTrade) {
-                        onOpenLogTrade();
-                      } else {
-                        navigate('/journal');
-                      }
-                      toast.info('Opening trade execution ledger');
-                    })}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium cursor-pointer text-zinc-200 aria-selected:bg-emerald-500/15 aria-selected:text-emerald-400 aria-selected:border aria-selected:border-emerald-500/30 transition-colors"
+                    onSelect={() => runCommand(() => navigate('/ai-insights'))}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 aria-selected:bg-emerald-500/15 aria-selected:text-emerald-400 cursor-pointer transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <PlusCircle size={16} className="text-emerald-500" />
-                      <span>Log New Trade</span>
+                    <div className="flex items-center gap-2.5">
+                      <Cpu size={15} className="text-emerald-400" />
+                      <span>Go to AI Quant Lab</span>
                     </div>
-                    <span className="text-[10px] font-mono text-zinc-500">Instant Sync</span>
-                  </Command.Item>
-
-                  <Command.Item
-                    onSelect={() => runCommand(() => {
-                      navigate('/journal');
-                      toast.info('Navigating to open positions');
-                    })}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium cursor-pointer text-zinc-200 aria-selected:bg-rose-500/15 aria-selected:text-rose-400 aria-selected:border aria-selected:border-rose-500/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <XCircle size={16} className="text-rose-500" />
-                      <span>Quick Close Position</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-zinc-500">Portfolio</span>
-                  </Command.Item>
-                </Command.Group>
-
-                {/* Group 2: Intelligence & Quant */}
-                <Command.Group heading="Intelligence & Quant Engine" className="text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-400 px-3 py-1 pt-2">
-                  <Command.Item
-                    onSelect={() => runCommand(() => {
-                      navigate('/market-pulse');
-                      toast.success('Analyzing QQQ / Tech 100 liquidity corridors');
-                    })}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium cursor-pointer text-zinc-200 aria-selected:bg-primary/20 aria-selected:text-primary aria-selected:border aria-selected:border-primary/40 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <TrendingUp size={16} className="text-primary" />
-                      <span>Analyze QQQ Order Flow & Corridors</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-primary font-bold">Neural Engine</span>
-                  </Command.Item>
-
-                  <Command.Item
-                    onSelect={() => runCommand(() => {
-                      if (onRunMonteCarlo) {
-                        onRunMonteCarlo();
-                      } else {
-                        navigate('/analytics');
-                      }
-                      toast.success('Executing 10,000-path Monte Carlo risk simulation');
-                    })}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium cursor-pointer text-zinc-200 aria-selected:bg-indigo-500/20 aria-selected:text-indigo-400 aria-selected:border aria-selected:border-indigo-500/40 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Cpu size={16} className="text-indigo-400" />
-                      <span>Run Monte Carlo Risk Simulation</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-indigo-400">Web Worker</span>
-                  </Command.Item>
-
-                  <Command.Item
-                    onSelect={() => runCommand(() => {
-                      navigate('/analytics');
-                    })}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium cursor-pointer text-zinc-200 aria-selected:bg-white/10 aria-selected:text-white transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <BarChart3 size={16} className="text-zinc-400" />
-                      <span>View Quantitative Analytics Suite</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-zinc-500">Sharpe / DD</span>
-                  </Command.Item>
-                </Command.Group>
-
-                {/* Group 3: Navigation & UI */}
-                <Command.Group heading="UI & System Theme" className="text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-400 px-3 py-1 pt-2">
-                  <Command.Item
-                    onSelect={() => runCommand(() => {
-                      const next = theme === 'dark' ? 'light' : 'dark';
-                      setTheme(next);
-                      toast.info(`Theme set to ${next} mode`);
-                    })}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium cursor-pointer text-zinc-200 aria-selected:bg-amber-500/15 aria-selected:text-amber-400 aria-selected:border aria-selected:border-amber-500/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {theme === 'dark' ? (
-                        <Sun size={16} className="text-amber-400" />
-                      ) : (
-                        <Moon size={16} className="text-indigo-400" />
-                      )}
-                      <span>Toggle Dark / Light Mode</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-zinc-500 capitalize">{theme}</span>
-                  </Command.Item>
-
-                  <Command.Item
-                    onSelect={() => runCommand(() => navigate('/journal'))}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium cursor-pointer text-zinc-200 aria-selected:bg-white/10 aria-selected:text-white transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <BookOpen size={16} className="text-zinc-400" />
-                      <span>Go to Journal Ledger</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-zinc-500">History</span>
+                    <span className="text-[10px] text-zinc-500">/ai-insights</span>
                   </Command.Item>
 
                   <Command.Item
                     onSelect={() => runCommand(() => navigate('/market-pulse'))}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium cursor-pointer text-zinc-200 aria-selected:bg-white/10 aria-selected:text-white transition-colors"
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 aria-selected:bg-primary/15 aria-selected:text-primary cursor-pointer transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <Activity size={16} className="text-zinc-400" />
-                      <span>Go to MarketPulse Macro Calendar</span>
+                    <div className="flex items-center gap-2.5">
+                      <Flame size={15} className="text-amber-400" />
+                      <span>Jump to Next Macro Catalyst</span>
                     </div>
-                    <span className="text-[10px] font-mono text-zinc-500">Macro</span>
+                    <span className="text-[10px] text-zinc-500">/market-pulse</span>
                   </Command.Item>
 
                   <Command.Item
-                    onSelect={() => runCommand(() => navigate('/ai-insights'))}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium cursor-pointer text-zinc-200 aria-selected:bg-white/10 aria-selected:text-white transition-colors"
+                    onSelect={() => runCommand(() => navigate('/journal-history'))}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 aria-selected:bg-indigo-500/15 aria-selected:text-indigo-400 cursor-pointer transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <Cpu size={16} className="text-emerald-400" />
-                      <span>Go to Market Intelligence & Telemetry</span>
+                    <div className="flex items-center gap-2.5">
+                      <Calendar size={15} className="text-indigo-400" />
+                      <span>Toggle Calendar Heatmap</span>
                     </div>
-                    <span className="text-[10px] font-mono text-emerald-400">Terminal</span>
+                    <span className="text-[10px] text-zinc-500">/journal-history</span>
                   </Command.Item>
+
+                  <Command.Item
+                    onSelect={() => runCommand(() => {
+                      if (onRunMonteCarlo) onRunMonteCarlo();
+                      else navigate('/ai-insights');
+                    })}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 aria-selected:bg-purple-500/15 aria-selected:text-purple-400 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Sparkles size={15} className="text-purple-400" />
+                      <span>Run Monte Carlo Audit</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500">Z-Score Engine</span>
+                  </Command.Item>
+
+                </Command.Group>
+
+                {/* Group 2: Journal & System Actions */}
+                <Command.Group heading="JOURNAL & SYSTEM SETTINGS" className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 px-3 py-1 pt-2">
+                  
+                  <Command.Item
+                    onSelect={() => runCommand(() => navigate('/journal'))}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 aria-selected:bg-emerald-500/15 aria-selected:text-emerald-400 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <PlusCircle size={15} className="text-emerald-400" />
+                      <span>Open Trade Execution Logger</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500">/journal</span>
+                  </Command.Item>
+
+                  <Command.Item
+                    onSelect={() => runCommand(() => navigate('/analytics'))}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 aria-selected:bg-white/10 aria-selected:text-white cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <BarChart3 size={15} className="text-zinc-400" />
+                      <span>View Quantitative Analytics Suite</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500">/analytics</span>
+                  </Command.Item>
+
+                  <Command.Item
+                    onSelect={() => runCommand(() => navigate('/settings'))}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 aria-selected:bg-white/10 aria-selected:text-white cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Activity size={15} className="text-zinc-400" />
+                      <span>Risk & Prop Firm Configuration</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500">/settings</span>
+                  </Command.Item>
+
                 </Command.Group>
               </Command.List>
 
               {/* Footer Guide */}
-              <div className="px-5 py-3 bg-zinc-950/80 flex items-center justify-between text-[11px] font-mono text-zinc-400">
-                <span className="flex items-center gap-2">
-                  <ShieldCheck size={13} className="text-emerald-500" />
-                  <span>BentoTrade v5.5 Institutional Core</span>
+              <div className="px-4 py-2.5 bg-zinc-950 flex items-center justify-between text-[10px] font-mono text-zinc-500 border-t border-zinc-800">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck size={12} className="text-emerald-400" />
+                  <span>BentoTrade REVISION_6.0</span>
                 </span>
                 <div className="flex items-center gap-2">
                   <span>Use ↑↓ to navigate</span>
@@ -249,6 +346,7 @@ export const BentoCommandPalette: React.FC<BentoCommandPaletteProps> = ({
                 </div>
               </div>
             </Command>
+
           </div>
         </div>
       )}

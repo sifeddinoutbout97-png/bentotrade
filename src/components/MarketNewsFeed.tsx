@@ -51,10 +51,10 @@ export const MarketNewsFeed: React.FC<MarketNewsFeedProps> = ({ className }) => 
 
   return (
     <Card className={cn(
-      "rounded-[2.5rem] border-zinc-950/5 dark:border-white/5 bg-white/70 dark:bg-zinc-900/50 shadow-sm dark:shadow-2xl backdrop-blur-[20px] overflow-hidden",
+      "rounded-[2.5rem] border border-zinc-800/80 bg-zinc-950/90 shadow-2xl overflow-hidden",
       className
     )}>
-      <CardHeader className="border-b border-zinc-950/5 dark:border-white/5 p-6 md:p-8 pb-4 flex flex-row items-center justify-between">
+      <CardHeader className="border-b border-zinc-800/80 p-6 md:p-8 pb-4 flex flex-row items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-sm">
             <Newspaper size={18} />
@@ -98,7 +98,7 @@ export const MarketNewsFeed: React.FC<MarketNewsFeedProps> = ({ className }) => 
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}
-              className="p-5 rounded-3xl border border-zinc-950/5 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.03] hover:bg-zinc-100/70 dark:hover:bg-white/[0.07] hover:border-emerald-500/30 transition-all flex flex-col justify-between group space-y-3"
+              className="p-5 rounded-3xl border border-zinc-800/60 bg-zinc-900/60 hover:bg-zinc-800/80 hover:border-emerald-500/30 transition-colors duration-150 flex flex-col justify-between group space-y-3"
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[10px] font-mono">

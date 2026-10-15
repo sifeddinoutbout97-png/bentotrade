@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   BookOpenText, 
@@ -22,9 +22,13 @@ import {
   Sun,
   Moon,
   Menu,
-  X
+  X,
+  Command,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { useTrades } from '@/context/TradeContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BTLogo } from '@/components/ui/BTLogo';
@@ -81,7 +85,39 @@ export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { user, isAdmin, isStaff, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { trades } = useTrades();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleExportCSV = () => {
+    if (!trades || trades.length === 0) {
+      toast.error('No trades available to export.');
+      return;
+    }
+    const headers = ['ID', 'Date', 'Ticker', 'Direction', 'Size', 'Entry Price', 'Exit Price', 'Stop Loss', 'PnL ($)', 'Status', 'R:R'];
+    const rows = trades.map((t) => [
+      t.id,
+      t.trade_date,
+      t.ticker,
+      t.direction,
+      t.position_size,
+      t.entry_price,
+      t.exit_price || '',
+      t.stop_loss || '',
+      t.pnl,
+      t.status,
+      t.risk_reward_ratio || ''
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `bentotrade_journal_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Journal exported as CSV.');
+  };
 
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -111,7 +147,7 @@ export const Sidebar = () => {
           <span className="font-bold text-base tracking-tight text-white flex items-center gap-2">
             BentoTrade 
             <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-widest font-mono">
-              v5 Pro
+              V6 Pro
             </span>
           </span>
         </div>
@@ -204,7 +240,7 @@ export const Sidebar = () => {
                         <NavItem to="/admin" icon={ShieldAlert} label="Control Tower" onClick={closeMobile} />
                       )}
                       {isStaff && (
-                        <NavItem to="/admin/support" icon={LifeBuoy} label="Support Desk" onClick={closeMobile} />
+                        <NavItem to="/admin/support" icon={LifeBuoy} label="Support Console" onClick={closeMobile} />
                       )}
                     </div>
                   </div>
@@ -284,7 +320,7 @@ export const Sidebar = () => {
       {/* 4. DESKTOP PERSISTENT SIDEBAR */}
       <aside
         className={cn(
-          "hidden md:flex h-screen bg-zinc-950 border-r border-zinc-800/80 flex-col transition-all duration-300 shrink-0 select-none",
+          "hidden md:flex h-full bg-zinc-950 border-r border-zinc-800/80 flex-col transition-all duration-300 shrink-0 select-none",
           isCollapsed ? "w-16" : "w-64"
         )}
       >
@@ -296,7 +332,7 @@ export const Sidebar = () => {
               <div className="flex items-center gap-2 truncate">
                 <span className="font-bold text-sm tracking-tight text-zinc-100">BentoTrade</span>
                 <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">
-                  v5 Pro
+                  V6 Pro
                 </span>
               </div>
             )}
@@ -356,7 +392,7 @@ export const Sidebar = () => {
                     <NavItem to="/admin" icon={ShieldAlert} label="Control Tower" isCollapsed={isCollapsed} />
                   )}
                   {isStaff && (
-                    <NavItem to="/admin/support" icon={LifeBuoy} label="Support Desk" isCollapsed={isCollapsed} />
+                    <NavItem to="/admin/support" icon={LifeBuoy} label="Support Console" isCollapsed={isCollapsed} />
                   )}
                 </div>
               </div>
@@ -407,13 +443,39 @@ export const Sidebar = () => {
                   )}
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-lg bg-zinc-900 border-zinc-800 shadow-2xl p-1 text-zinc-200">
+              <DropdownMenuContent align="end" className="w-56 rounded-xl bg-zinc-950 border-zinc-800 shadow-2xl p-1.5 text-zinc-200 font-mono text-xs space-y-0.5">
+                <DropdownMenuItem 
+                  onClick={() => navigate('/settings')}
+                  className="flex items-center gap-2 cursor-pointer rounded-lg px-2.5 py-2 hover:bg-zinc-900 focus:bg-zinc-900"
+                >
+                  <Settings size={14} className="text-emerald-400" />
+                  <span>Risk & Account Settings</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem 
+                  onClick={() => window.dispatchEvent(new CustomEvent('bt_open_command_palette'))}
+                  className="flex items-center gap-2 cursor-pointer rounded-lg px-2.5 py-2 hover:bg-zinc-900 focus:bg-zinc-900"
+                >
+                  <Command size={14} className="text-emerald-400" />
+                  <span>Command Palette (⌘K)</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem 
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-2 cursor-pointer rounded-lg px-2.5 py-2 hover:bg-zinc-900 focus:bg-zinc-900"
+                >
+                  <Download size={14} className="text-emerald-400" />
+                  <span>Export Journal CSV</span>
+                </DropdownMenuItem>
+
+                <div className="my-1 border-t border-zinc-800/80" />
+
                 <DropdownMenuItem 
                   onClick={() => signOut()}
-                  className="flex items-center gap-2 text-rose-400 focus:text-rose-300 focus:bg-rose-950/30 cursor-pointer rounded-md px-2.5 py-1.5 text-xs font-medium"
+                  className="flex items-center gap-2 text-rose-400 focus:text-rose-300 focus:bg-rose-950/30 cursor-pointer rounded-lg px-2.5 py-2 font-medium"
                 >
                   <LogOut size={14} />
-                  Sign Out
+                  <span>Sign Out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

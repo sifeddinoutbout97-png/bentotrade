@@ -1,5 +1,5 @@
 /**
- * BentoTrade v5.0 Live AI Strategic Intelligence & Behavioral Diagnostics Service
+ * BentoOS Institutional v6.0 Live AI Strategic Intelligence & Behavioral Diagnostics Service
  * High-performance Gemini API integration with rate-limit retry & deterministic fallback
  */
 
@@ -123,7 +123,7 @@ function createFallbackTradeAnalysis(trade: TradeData): TradeAnalysis {
   return {
     executionRating: rating,
     ratingScore: score,
-    summary: `BentoTrade v5.0 Neural Engine evaluated execution on ${trade.ticker || 'Asset'} (${trade.direction.toUpperCase()}). Order fill was logged at ${trade.entry_price.toFixed(2)} with realized PnL of ${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}. Strategic positioning aligns with institutional momentum corridors.`,
+    summary: `BentoOS Institutional v6.0 Neural Engine evaluated execution on ${trade.ticker || 'Asset'} (${trade.direction.toUpperCase()}). Order fill was logged at ${trade.entry_price.toFixed(2)} with realized PnL of ${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}. Strategic positioning aligns with institutional momentum corridors.`,
     behavioralFlags: flags,
     riskBreakdown: {
       riskRewardRatio: Number(rr.toFixed(2)),
@@ -144,7 +144,7 @@ function createFallbackTradeAnalysis(trade: TradeData): TradeAnalysis {
  */
 export async function analyzeTradeRisk(trade: TradeData): Promise<TradeAnalysis> {
   const prompt = `
-Analyze this financial trading execution for our quantitative trade journal BentoTrade v5.0:
+Analyze this financial trading execution for our quantitative trade journal BentoOS Institutional v6.0:
 Asset: ${trade.ticker}
 Direction: ${trade.direction}
 Entry Price: ${trade.entry_price}
@@ -175,7 +175,7 @@ Return ONLY a valid JSON object matching this TypeScript interface without markd
   try {
     const raw = await callGeminiApi(
       prompt,
-      'You are the BentoTrade v5.0 Chief Quant & Risk Auditor. Deliver sharp, institutional-grade trade post-mortems with no fluff.'
+      'You are the BentoOS Institutional v6.0 Chief Quant & Risk Auditor. Deliver sharp, institutional-grade trade post-mortems with no fluff.'
     );
     const cleaned = raw.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
     const parsed = JSON.parse(cleaned) as TradeAnalysis;
@@ -207,7 +207,7 @@ function createFallbackMarketIntelligence(events: CalendarEvent[]): MarketPulseS
   return {
     riskLevel,
     headline,
-    briefing: `BentoTrade v5.0 Neural-Sync monitored ${events.length} upcoming economic catalysts across major global currencies. ${
+    briefing: `BentoOS Institutional v6.0 Neural-Sync monitored ${events.length} upcoming economic catalysts across major global currencies. ${
       hasHighImpact 
         ? 'Institutional liquidity sweeps are expected within 15 minutes of major rate/employment releases. Spreads may widen up to 300% across index futures ($NQ, $ES) and FX majors.' 
         : 'Macro indicators remain within standard deviation bands. Flow exhibits normal institutional rotation.'
@@ -280,7 +280,7 @@ export async function generateMarketIntelligence(events: CalendarEvent[]): Promi
   }));
 
   const prompt = `
-Analyze these scheduled macroeconomic calendar events for BentoTrade v5.0 Quantitative MarketPulse:
+Analyze these scheduled macroeconomic calendar events for BentoOS Institutional v6.0 Quantitative MarketPulse:
 Events:
 ${JSON.stringify(promptEvents, null, 2)}
 
@@ -313,7 +313,7 @@ Provide an institutional macro intelligence briefing. Return ONLY valid JSON mat
   try {
     const raw = await callGeminiApi(
       prompt,
-      'You are the BentoTrade v5.0 Senior Chief Market Strategist. Provide concise, highly actionable institutional volatility intelligence.'
+      'You are the BentoOS Institutional v6.0 Senior Chief Market Strategist. Provide concise, highly actionable institutional volatility intelligence.'
     );
     const cleaned = raw.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
     const parsed = JSON.parse(cleaned) as MarketPulseSummary;

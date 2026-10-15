@@ -54,6 +54,26 @@ interface AuditResult {
   user_id: string;
 }
 
+const AdminUptimeClock = React.memo(() => {
+  const [uptime, setUptime] = useState('00:00:00');
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const diff = Math.floor((Date.now() - startTime) / 1000);
+      const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
+      const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+      const seconds = (diff % 60).toString().padStart(2, '0');
+      setUptime(`${hours}:${minutes}:${seconds}`);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return <span className="text-xs font-mono font-bold text-emerald-400">{uptime}</span>;
+});
+
+AdminUptimeClock.displayName = 'AdminUptimeClock';
+
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const { initiateGhostMode, exitGhostMode, impersonatingUserId } = useAuth();
@@ -61,7 +81,6 @@ export const AdminDashboard = () => {
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [uptime, setUptime] = useState('00:00:00');
   
   // New State for Live Activity & Ghost Mode
   const [userMap, setUserMap] = useState<Record<string, string>>({});
@@ -78,18 +97,6 @@ export const AdminDashboard = () => {
   // User Management State
   const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-
-  useEffect(() => {
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const diff = Math.floor((Date.now() - startTime) / 1000);
-      const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
-      const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-      const seconds = (diff % 60).toString().padStart(2, '0');
-      setUptime(`${hours}:${minutes}:${seconds}`);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -488,7 +495,7 @@ export const AdminDashboard = () => {
                 <CircleDot className="w-2 h-2 text-emerald-400 animate-pulse" />
                 Live Uptime
               </span>
-              <span className="text-xs font-mono font-bold text-emerald-400">{uptime}</span>
+              <AdminUptimeClock />
             </div>
           </div>
         </div>
