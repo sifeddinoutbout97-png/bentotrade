@@ -8,7 +8,8 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import dotenv from 'dotenv';
 import { generateInstitutionalEconomicEvents } from './src/data/mockEconomicEvents';
-import { connectBrokerAccount, syncBrokerTrades } from './src/services/brokerService';
+import connectHandler from './api/broker/connect';
+import syncHandler from './api/broker/sync';
 
 dotenv.config();
 
@@ -28,65 +29,19 @@ app.use((_req, res, next) => {
 
 app.use(express.json());
 
-const handleBrokerConnect = async (req: express.Request, res: express.Response) => {
-  try {
-    const params = req.method === 'GET' ? req.query : req.body;
-    const { login, password, server, platform, accountId, userId } = params || {};
-    console.log(`[Express /api/broker/connect ${req.method}] platform=${platform}, server=${server}, account=${login || accountId}`);
-    const result = await connectBrokerAccount({
-      login: (login || accountId || '35211973') as string,
-      password: (password || 'MetaVault#2026!') as string,
-      server: (server || 'FundedNext-Server3') as string,
-      platform: (platform || 'mt5') as any,
-      accountId: (accountId || login || '35211973') as string,
-      userId: userId as string,
-    });
-    return res.json(result);
-  } catch (err: any) {
-    console.error(`[Express /api/broker/connect ${req.method}] Error:`, err);
-    return res.status(400).json({
-      success: false,
-      error: err?.message || 'Failed to establish handshake with broker gateway',
-    });
-  }
-};
+/**
+ * /api/broker/connect - Dispatched directly to Vercel Serverless Function handler
+ */
+app.all('/api/broker/connect', async (req, res) => {
+  return connectHandler(req, res);
+});
 
 /**
- * POST & GET /api/broker/connect
- * Performs live handshake with MT5/MT4 broker gateway via MetaApi Cloud SDK.
+ * /api/broker/sync - Dispatched directly to Vercel Serverless Function handler
  */
-app.post('/api/broker/connect', handleBrokerConnect);
-app.get('/api/broker/connect', handleBrokerConnect);
-
-const handleBrokerSync = async (req: express.Request, res: express.Response) => {
-  try {
-    const params = req.method === 'GET' ? req.query : req.body;
-    const { login, server, platform, accountId, userId, force } = params || {};
-    console.log(`[Express /api/broker/sync ${req.method}] Sync triggered for account=${login || accountId}, server=${server}`);
-    const result = await syncBrokerTrades({
-      login: (login || accountId || '35211973') as string,
-      server: (server || 'FundedNext-Server3') as string,
-      platform: (platform || 'mt5') as any,
-      accountId: (accountId || login || '35211973') as string,
-      userId: userId as string,
-      force: force !== 'false' && force !== false,
-    });
-    return res.json(result);
-  } catch (err: any) {
-    console.error(`[Express /api/broker/sync ${req.method}] Error:`, err);
-    return res.status(400).json({
-      success: false,
-      error: err?.message || 'Failed to sync executions from broker gateway',
-    });
-  }
-};
-
-/**
- * POST & GET /api/broker/sync
- * Synchronizes execution blotter and persists round-trip trades to Supabase ledger.
- */
-app.post('/api/broker/sync', handleBrokerSync);
-app.get('/api/broker/sync', handleBrokerSync);
+app.all('/api/broker/sync', async (req, res) => {
+  return syncHandler(req, res);
+});
 
 /**
  * GET /api/economic-calendar
