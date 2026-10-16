@@ -1,113 +1,126 @@
-import { NextResponse } from 'next/server';
 import { syncBrokerTrades } from '@/services/brokerService';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
-
-async function executeSync(params: {
-  login?: string | null;
-  server?: string | null;
-  platform?: string | null;
-  accountId?: string | null;
-  userId?: string | null;
-  force?: boolean;
-}) {
-  const result = await syncBrokerTrades({
-    login: params.login || params.accountId || '35211973',
-    server: params.server || 'FundedNext-Server3',
-    platform: params.platform || 'mt5',
-    accountId: params.accountId || params.login || '35211973',
-    userId: params.userId || undefined,
-    force: params.force !== false,
+export async function OPTIONS(req: Request) {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
   });
-
-  return {
-    success: true,
-    balance: result.balance,
-    equity: result.equity,
-    currency: result.currency,
-    count: result.count,
-    totalPnl: result.totalPnl,
-    tradesSynced: result.tradesSynced,
-    netPnl: result.netPnl,
-    trades: result.trades,
-    syncedAt: result.syncedAt,
-    source: result.source,
-  };
 }
 
-/**
- * POST /api/broker/sync
- * Syncs broker execution blotter with payload from LiveBrokerSync.
- */
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const { login, server, platform, accountId, userId, force } = body;
 
-    const data = await executeSync({
-      login: login || accountId,
-      server,
-      platform,
-      accountId,
-      userId,
-      force,
+    const result = await syncBrokerTrades({
+      login: login || accountId || '35211973',
+      server: server || 'FundedNext-Server3',
+      platform: platform || 'mt5',
+      accountId: accountId || login || '35211973',
+      userId: userId || undefined,
+      force: force !== false,
     });
 
-    return NextResponse.json(data, { status: 200, headers: CORS_HEADERS });
+    const responsePayload = {
+      success: true,
+      balance: result.balance,
+      equity: result.equity,
+      currency: result.currency,
+      count: result.count,
+      totalPnl: result.totalPnl,
+      tradesSynced: result.tradesSynced,
+      netPnl: result.netPnl,
+      trades: result.trades,
+      syncedAt: result.syncedAt,
+      source: result.source,
+    };
+
+    return new Response(JSON.stringify(responsePayload), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   } catch (err: any) {
     console.error('[/api/broker/sync POST] Error:', err);
-    return NextResponse.json(
-      {
+    return new Response(
+      JSON.stringify({
         success: false,
         error: err?.message || 'Failed to synchronize executions from broker',
-      },
-      { status: 400, headers: CORS_HEADERS }
+      }),
+      {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      }
     );
   }
 }
 
-/**
- * GET /api/broker/sync
- * Fallback and health check query handler to prevent 405 Method Not Allowed errors.
- */
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const searchParams = url.searchParams;
 
-    const data = await executeSync({
-      login: searchParams.get('login') || searchParams.get('accountId'),
-      server: searchParams.get('server'),
-      platform: searchParams.get('platform'),
-      accountId: searchParams.get('accountId') || searchParams.get('login'),
-      userId: searchParams.get('userId'),
+    const result = await syncBrokerTrades({
+      login: searchParams.get('login') || searchParams.get('accountId') || '35211973',
+      server: searchParams.get('server') || 'FundedNext-Server3',
+      platform: (searchParams.get('platform') as any) || 'mt5',
+      accountId: searchParams.get('accountId') || searchParams.get('login') || '35211973',
+      userId: searchParams.get('userId') || undefined,
       force: searchParams.get('force') !== 'false',
     });
 
-    return NextResponse.json(data, { status: 200, headers: CORS_HEADERS });
+    const responsePayload = {
+      success: true,
+      balance: result.balance,
+      equity: result.equity,
+      currency: result.currency,
+      count: result.count,
+      totalPnl: result.totalPnl,
+      tradesSynced: result.tradesSynced,
+      netPnl: result.netPnl,
+      trades: result.trades,
+      syncedAt: result.syncedAt,
+      source: result.source,
+    };
+
+    return new Response(JSON.stringify(responsePayload), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   } catch (err: any) {
     console.error('[/api/broker/sync GET] Error:', err);
-    return NextResponse.json(
-      {
+    return new Response(
+      JSON.stringify({
         success: false,
         error: err?.message || 'Failed to synchronize executions from broker',
-      },
-      { status: 400, headers: CORS_HEADERS }
+      }),
+      {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      }
     );
   }
-}
-
-/**
- * OPTIONS /api/broker/sync
- * CORS preflight handling.
- */
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: CORS_HEADERS,
-  });
 }
