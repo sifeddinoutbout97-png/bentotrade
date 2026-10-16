@@ -1,4 +1,4 @@
-import { connectBrokerAccount } from '../../src/services/brokerService.ts';
+import { connectBrokerAccount } from '../../src/services/brokerService';
 
 export default async function handler(req: any, res: any) {
   // 1. Handle CORS Preflight
