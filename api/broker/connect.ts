@@ -7,7 +7,7 @@
 const METAAPI_TOKEN = (process.env.METAAPI_TOKEN || process.env.VITE_METAAPI_TOKEN || '').trim();
 
 const provisioningBaseUrl = 'https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai';
-const STANDARD_REGIONS = ['new-york', 'london', 'vint-hill', 'singapore', 'tokyo'];
+const STANDARD_REGIONS = ['new-york', 'london', 'vint-hill', 'singapore', 'frankfurt'];
 
 function normalizeServerName(server: string): string {
   if (!server) return 'FundedNext-Server 3';
@@ -121,6 +121,7 @@ async function getOrCreateAndDeployAccount(login: string, server: string, platfo
       body: JSON.stringify({
         password: password,
         server: normalizedServer,
+        name: account.name || `BentoTrade ${loginStr}`,
       }),
     }, 'MetaApi-UpdateAccount').catch(() => {});
   }
@@ -130,15 +131,15 @@ async function getOrCreateAndDeployAccount(login: string, server: string, platfo
     const detailRes = await safeFetch(`${provisioningBaseUrl}/users/current/accounts/${metaApiAccountId}`, { headers }, `MetaApi-GetAccountDetail-${attempt}`);
     if (detailRes.ok) {
       fullAccount = await detailRes.json();
-      if (fullAccount.state === 'DEPLOYED' && fullAccount.connectionStatus === 'CONNECTED') {
-        break;
-      }
       if (fullAccount.state !== 'DEPLOYED') {
         await safeFetch(`${provisioningBaseUrl}/users/current/accounts/${metaApiAccountId}/deploy`, { method: 'POST', headers }, 'MetaApi-Deploy').catch(() => {});
       }
+      if (fullAccount.connectionStatus === 'CONNECTED') {
+        break;
+      }
     }
     if (attempt < 6) {
-      await new Promise(r => setTimeout(r, 2500));
+      await new Promise(r => setTimeout(r, 2000));
     }
   }
 
@@ -155,44 +156,53 @@ async function getOrCreateAndDeployAccount(login: string, server: string, platfo
   return { metaApiAccountId, region, fullAccount };
 }
 
-async function fetchAccountInformationWithMultiRegionFallback(metaApiAccountId: string, initialRegion: string, headers: any) {
-  const regionsToTry = [initialRegion, ...STANDARD_REGIONS.filter(r => r !== initialRegion)];
-  let lastError: any = null;
+async function fetchAccountInformation(metaApiAccountId: string, primaryRegion: string, fullAccount: any, headers: any) {
+  const primaryBaseUrl = `https://mt-client-api-v1.${primaryRegion}.agiliumtrade.ai`;
+  let lastStatus = 0;
+  let lastErrText = '';
 
-  for (const reg of regionsToTry) {
-    const regionalBaseUrl = `https://mt-client-api-v1.${reg}.agiliumtrade.ai`;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const url = `${regionalBaseUrl}/users/current/accounts/${metaApiAccountId}/account-information`;
-        const res = await safeFetch(url, { headers }, `MetaApi-AccountInfo-${reg}-attempt${attempt}`);
-        if (res.ok) {
-          return await res.json();
-        }
-        const errText = await res.text();
-        if (res.status === 404 && errText.includes('NotFoundError')) {
-          break;
-        }
-        if ([400, 504].includes(res.status) || errText.includes('E_NOT_SYNCHRONIZED')) {
-          if (attempt < 3) {
-            await new Promise(r => setTimeout(r, 2500));
-            continue;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const url = `${primaryBaseUrl}/users/current/accounts/${metaApiAccountId}/account-information`;
+      const res = await safeFetch(url, { headers }, `MetaApi-AccountInfo-${primaryRegion}-attempt${attempt}`);
+      if (res.ok) {
+        return await res.json();
+      }
+      lastStatus = res.status;
+      lastErrText = await res.text();
+
+      // Check if it's a regional 404 that specifically mentions matching account region
+      if (res.status === 404 && lastErrText.includes('matches your account region')) {
+        const fallbackRegions = STANDARD_REGIONS.filter(r => r !== primaryRegion);
+        for (const fallbackReg of fallbackRegions) {
+          try {
+            const fallbackUrl = `https://mt-client-api-v1.${fallbackReg}.agiliumtrade.ai/users/current/accounts/${metaApiAccountId}/account-information`;
+            const fbRes = await fetch(fallbackUrl, { headers });
+            if (fbRes.ok) {
+              return await fbRes.json();
+            }
+          } catch {
+            // Ignore DNS/network errors on fallback region
           }
         }
-        throw new Error(`Failed to fetch account info on region ${reg} (${res.status}): ${errText}`);
-      } catch (err: any) {
-        lastError = err;
-        if (err.message && err.message.includes('NotFoundError')) {
-          break;
-        }
+      }
+
+      if ([400, 504].includes(res.status) || lastErrText.includes('E_NOT_SYNCHRONIZED')) {
         if (attempt < 3) {
-          await new Promise(r => setTimeout(r, 2500));
+          await new Promise(r => setTimeout(r, 2000));
           continue;
         }
+      }
+    } catch (err: any) {
+      lastErrText = err?.message || String(err);
+      if (attempt < 3) {
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
       }
     }
   }
 
-  throw lastError || new Error(`Failed to fetch account information for account ID ${metaApiAccountId} across all regions.`);
+  throw new Error(`Account ${fullAccount.login || 'Unknown'} (ID: ${metaApiAccountId}, region: ${primaryRegion}) state=${fullAccount.state}, connectionStatus=${fullAccount.connectionStatus}. Details (${lastStatus}): ${lastErrText}`);
 }
 
 export default async function handler(req: any, res: any) {
@@ -229,7 +239,7 @@ export default async function handler(req: any, res: any) {
         METAAPI_TOKEN
       );
 
-      const accountInfo = await fetchAccountInformationWithMultiRegionFallback(metaApiAccountId, region, headers);
+      const accountInfo = await fetchAccountInformation(metaApiAccountId, region, fullAccount, headers);
       const balance = Number(accountInfo.balance) || 0;
       const equity = Number(accountInfo.equity) || balance;
       const currency = accountInfo.currency || 'USD';
