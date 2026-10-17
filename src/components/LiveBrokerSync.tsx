@@ -213,7 +213,11 @@ export const LiveBrokerSync: React.FC = () => {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed: SavedConnectionData = JSON.parse(saved);
-        if (parsed.platform && SUPPORTED_PLATFORMS[parsed.platform]) {
+        if (parsed.accountBalance === 100000 || parsed.accountEquity === 105170 || parsed.accountEquity === 102450.50) {
+          localStorage.removeItem(STORAGE_KEY);
+          setAccountBalance(null);
+          setAccountEquity(null);
+        } else if (parsed.platform && SUPPORTED_PLATFORMS[parsed.platform]) {
           setPlatform(parsed.platform);
           const isKnown = SUPPORTED_PLATFORMS[parsed.platform].servers.includes(parsed.server);
           if (!isKnown && (parsed.platform === 'mt5' || parsed.platform === 'mt4')) {

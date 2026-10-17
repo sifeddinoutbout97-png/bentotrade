@@ -1,27 +1,39 @@
 /**
  * BentoTrade V6 - Serverless Broker Blotter Synchronization
  * Endpoint: /api/broker/sync
- * Calls MetaApi REST API and upserts real deals into Supabase. Auto-provisions account if not found.
+ * Calls MetaApi Provisioning & Regional Client APIs, unwraps error.cause, sanitizes env trims, and upserts real deals into Supabase.
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const METAAPI_TOKEN = process.env.METAAPI_TOKEN || process.env.VITE_METAAPI_TOKEN || '';
-const SUPABASE_URL = 
+const METAAPI_TOKEN = (process.env.METAAPI_TOKEN || process.env.VITE_METAAPI_TOKEN || '').trim();
+const SUPABASE_URL = (
+  process.env.SUPABASE_URL || 
   process.env.NEXT_PUBLIC_SUPABASE_URL || 
   process.env.VITE_SUPABASE_URL || 
-  process.env.SUPABASE_URL || 
-  'https://yaqigszrmgorhxmvdvif.supabase.co';
+  'https://yaqigszrmgorhxmvdvif.supabase.co'
+).trim();
 
-const SUPABASE_KEY = 
+const SUPABASE_KEY = (
   process.env.SUPABASE_SERVICE_ROLE_KEY || 
   process.env.SUPABASE_ANON_KEY || 
   process.env.VITE_SUPABASE_ANON_KEY || 
-  'sb_publishable_yBPJdgdVo6dXBbIz4dZTrA_8JgBJPg5';
+  'sb_publishable_yBPJdgdVo6dXBbIz4dZTrA_8JgBJPg5'
+).trim();
 
 const supabaseAdmin: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+
+async function safeFetch(url: string, options: any, stepName: string) {
+  try {
+    const res = await fetch(url, options);
+    return res;
+  } catch (err: any) {
+    const causeMsg = err.cause?.message || err.cause?.code || JSON.stringify(err.cause) || err.message;
+    throw new Error(`[${stepName}] fetch failed for URL "${url}": ${err.message} | cause: ${causeMsg}`);
+  }
+}
 
 export interface StandardTradeRecord {
   user_id: string;
@@ -42,7 +54,6 @@ export interface StandardTradeRecord {
 
 export default async function handler(req: any, res: any) {
   try {
-    // 1. Handle CORS Preflight
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -60,17 +71,17 @@ export default async function handler(req: any, res: any) {
       const userId = body.userId;
 
       if (!METAAPI_TOKEN) {
-        throw new Error('METAAPI_TOKEN environment variable is not configured. Please provide a valid MetaApi token to sync live broker accounts.');
+        throw new Error('METAAPI_TOKEN environment variable is not configured. Please provide a valid MetaApi token.');
       }
 
       const headers = {
-        'auth-token': METAAPI_TOKEN.trim(),
+        'auth-token': METAAPI_TOKEN,
         'Content-Type': 'application/json',
       };
 
-      const accountsRes = await fetch('https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts', {
-        headers,
-      });
+      const provisioningBaseUrl = 'https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai';
+      const accountsUrl = `${provisioningBaseUrl}/users/current/accounts`;
+      const accountsRes = await safeFetch(accountsUrl, { headers }, 'MetaApi-FetchAccounts');
 
       if (!accountsRes.ok) {
         const errText = await accountsRes.text();
@@ -81,11 +92,11 @@ export default async function handler(req: any, res: any) {
       const loginStr = String(login);
       let account = (Array.isArray(accounts) ? accounts : []).find(
         (a: any) => String(a.login) === loginStr && (!server || a.server?.toLowerCase() === server.toLowerCase())
-      );
+      ) || (Array.isArray(accounts) ? accounts.find((a: any) => String(a.login) === loginStr) : null);
 
       if (!account) {
         console.log(`[MetaApi Sync] Account ${loginStr} on ${server} not found. Auto-provisioning cloud account...`);
-        const createRes = await fetch('https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts', {
+        const createRes = await safeFetch(accountsUrl, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -97,7 +108,7 @@ export default async function handler(req: any, res: any) {
             platform: platform === 'mt4' ? 'mt4' : 'mt5',
             magic: 1000,
           }),
-        });
+        }, 'MetaApi-CreateAccount');
 
         if (createRes.ok) {
           account = await createRes.json();
@@ -111,26 +122,26 @@ export default async function handler(req: any, res: any) {
         }
       }
 
-      const accountId = account.id || account.accountId;
+      const accountId = account._id || account.id || account.accountId;
+      const region = account.region || 'new-york';
+      const regionalBaseUrl = `https://mt-client-api-v1.${region}.agiliumtrade.ai`;
 
       if (account.state !== 'DEPLOYED') {
-        const deployRes = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${accountId}/deploy`, {
-          method: 'POST',
-          headers,
-        });
-        if (!deployRes.ok) {
-          const errText = await deployRes.text();
+        const deployUrl = `${provisioningBaseUrl}/users/current/accounts/${accountId}/deploy`;
+        const deployRes = await safeFetch(deployUrl, { method: 'POST', headers }, 'MetaApi-DeployAccount').catch(() => null);
+        if (deployRes && !deployRes.ok) {
+          const errText = await deployRes.text().catch(() => '');
           console.warn(`[MetaApi Sync] Deploy notice for ${accountId}: ${errText}`);
         }
       }
 
-      const infoRes = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${accountId}/account-information`, {
-        headers,
-      });
+      // Fetch account information from regional endpoint
+      const infoUrl = `${regionalBaseUrl}/users/current/accounts/${accountId}/account-information`;
+      const infoRes = await safeFetch(infoUrl, { headers }, 'MetaApi-AccountInformation');
 
       if (!infoRes.ok) {
         const errText = await infoRes.text();
-        throw new Error(`Failed to fetch account information for ${accountId}: ${errText}`);
+        throw new Error(`Failed to fetch account information for ${accountId} from regional API (${infoRes.status}): ${errText}`);
       }
 
       const accountInfo = await infoRes.json();
@@ -141,18 +152,18 @@ export default async function handler(req: any, res: any) {
       const startTime = new Date(Date.now() - 90 * 86400000).toISOString();
       const endTime = new Date().toISOString();
 
-      const dealsRes = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${accountId}/history-deals/time/${startTime}/${endTime}`, {
-        headers,
-      });
+      const dealsUrl = `${regionalBaseUrl}/users/current/accounts/${accountId}/history-deals/time/${startTime}/${endTime}`;
+      const dealsRes = await safeFetch(dealsUrl, { headers }, 'MetaApi-HistoryDeals').catch(() => null);
 
       let rawDeals: any[] = [];
-      if (dealsRes.ok) {
-        rawDeals = await dealsRes.json();
+      if (dealsRes && dealsRes.ok) {
+        rawDeals = await dealsRes.json().catch(() => []);
       }
 
       const filteredDeals = (Array.isArray(rawDeals) ? rawDeals : []).filter((d: any) => {
-        if (d.type === 'DEAL_TYPE_BALANCE') return false;
-        return d.type === 'DEAL_TYPE_BUY' || d.type === 'DEAL_TYPE_SELL' || d.profit !== undefined;
+        if (d.type === 'DEAL_TYPE_BALANCE' || d.type === 'DEAL_TYPE_CREDIT') return false;
+        if (d.entry && d.entry !== 'DEAL_ENTRY_OUT' && d.entry !== 'DEAL_ENTRY_INOUT') return false;
+        return d.type === 'DEAL_TYPE_BUY' || d.type === 'DEAL_TYPE_SELL';
       });
 
       const formattedTrades: StandardTradeRecord[] = filteredDeals.map((d: any) => ({
@@ -204,15 +215,17 @@ export default async function handler(req: any, res: any) {
         netPnl: totalNetPnl,
         trades: formattedTrades,
         syncedAt: `Just now (${timeStr})`,
-        source: 'metaapi-rest',
+        source: 'metaapi-regional-rest',
       });
     }
 
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (error: any) {
     console.error('[API /api/broker/sync Error]:', error);
+    const causeStr = error?.cause ? String(error.cause?.message || error.cause?.code || error.cause) : undefined;
     return res.status(500).json({
       error: error?.message || 'Internal Server Error',
+      cause: causeStr,
       stack: error?.stack || null,
     });
   }

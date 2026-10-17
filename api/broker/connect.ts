@@ -1,10 +1,20 @@
 /**
  * BentoTrade V6 - Serverless Broker Gateway Handshake
  * Endpoint: /api/broker/connect
- * Calls MetaApi REST API to verify account credentials and returns real balance/equity. Auto-provisions account if not found.
+ * Calls MetaApi Provisioning & Regional Client APIs, unwraps error.cause, and sanitizes env trims.
  */
 
-const METAAPI_TOKEN = process.env.METAAPI_TOKEN || process.env.VITE_METAAPI_TOKEN || '';
+const METAAPI_TOKEN = (process.env.METAAPI_TOKEN || process.env.VITE_METAAPI_TOKEN || '').trim();
+
+async function safeFetch(url: string, options: any, stepName: string) {
+  try {
+    const res = await fetch(url, options);
+    return res;
+  } catch (err: any) {
+    const causeMsg = err.cause?.message || err.cause?.code || JSON.stringify(err.cause) || err.message;
+    throw new Error(`[${stepName}] fetch failed for URL "${url}": ${err.message} | cause: ${causeMsg}`);
+  }
+}
 
 export default async function handler(req: any, res: any) {
   try {
@@ -24,17 +34,17 @@ export default async function handler(req: any, res: any) {
       const password = body.password;
 
       if (!METAAPI_TOKEN) {
-        throw new Error('METAAPI_TOKEN environment variable is not configured. Cannot connect live broker without MetaApi token.');
+        throw new Error('METAAPI_TOKEN environment variable is not configured. Please provide a valid MetaApi token.');
       }
 
       const headers = {
-        'auth-token': METAAPI_TOKEN.trim(),
+        'auth-token': METAAPI_TOKEN,
         'Content-Type': 'application/json',
       };
 
-      const accountsRes = await fetch('https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts', {
-        headers,
-      });
+      const provisioningBaseUrl = 'https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai';
+      const accountsUrl = `${provisioningBaseUrl}/users/current/accounts`;
+      const accountsRes = await safeFetch(accountsUrl, { headers }, 'MetaApi-FetchAccounts');
 
       if (!accountsRes.ok) {
         const errText = await accountsRes.text();
@@ -42,16 +52,14 @@ export default async function handler(req: any, res: any) {
       }
 
       const accounts = await accountsRes.json();
-      console.log(`[MetaApi] Accounts fetched. Count: ${Array.isArray(accounts) ? accounts.length : 0}`);
-
       const loginStr = String(login);
       let account = (Array.isArray(accounts) ? accounts : []).find(
         (a: any) => String(a.login) === loginStr && (!server || a.server?.toLowerCase() === server.toLowerCase())
-      );
+      ) || (Array.isArray(accounts) ? accounts.find((a: any) => String(a.login) === loginStr) : null);
 
       if (!account) {
-        console.log(`[MetaApi] Account ${loginStr} on ${server} not found in account list. Auto-provisioning cloud MT5 account...`);
-        const createRes = await fetch('https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts', {
+        console.log(`[MetaApi Connect] Account ${loginStr} on ${server} not found. Auto-provisioning cloud account...`);
+        const createRes = await safeFetch(accountsUrl, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -63,7 +71,7 @@ export default async function handler(req: any, res: any) {
             platform: platform === 'mt4' ? 'mt4' : 'mt5',
             magic: 1000,
           }),
-        });
+        }, 'MetaApi-CreateAccount');
 
         if (createRes.ok) {
           account = await createRes.json();
@@ -77,26 +85,25 @@ export default async function handler(req: any, res: any) {
         }
       }
 
-      const accountId = account.id || account.accountId;
+      const accountId = account._id || account.id || account.accountId;
+      const region = account.region || 'new-york';
+      const regionalBaseUrl = `https://mt-client-api-v1.${region}.agiliumtrade.ai`;
 
       if (account.state !== 'DEPLOYED') {
-        const deployRes = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${accountId}/deploy`, {
-          method: 'POST',
-          headers,
-        });
-        if (!deployRes.ok) {
-          const errText = await deployRes.text();
-          console.warn(`[MetaApi] Deploy notice for ${accountId}: ${errText}`);
+        const deployUrl = `${provisioningBaseUrl}/users/current/accounts/${accountId}/deploy`;
+        const deployRes = await safeFetch(deployUrl, { method: 'POST', headers }, 'MetaApi-DeployAccount').catch(() => null);
+        if (deployRes && !deployRes.ok) {
+          const errText = await deployRes.text().catch(() => '');
+          console.warn(`[MetaApi Connect] Deploy notice for ${accountId}: ${errText}`);
         }
       }
 
-      const infoRes = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${accountId}/account-information`, {
-        headers,
-      });
+      const infoUrl = `${regionalBaseUrl}/users/current/accounts/${accountId}/account-information`;
+      const infoRes = await safeFetch(infoUrl, { headers }, 'MetaApi-AccountInformation');
 
       if (!infoRes.ok) {
         const errText = await infoRes.text();
-        throw new Error(`Failed to fetch account information for ${accountId}: ${errText}`);
+        throw new Error(`Failed to fetch account information for ${accountId} from regional API (${infoRes.status}): ${errText}`);
       }
 
       const accountInfo = await infoRes.json();
@@ -134,8 +141,10 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (error: any) {
     console.error('[API /api/broker/connect Error]:', error);
+    const causeStr = error?.cause ? String(error.cause?.message || error.cause?.code || error.cause) : undefined;
     return res.status(500).json({
       error: error?.message || 'Internal Server Error',
+      cause: causeStr,
       stack: error?.stack || null,
     });
   }
