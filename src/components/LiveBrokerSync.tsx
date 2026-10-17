@@ -100,7 +100,7 @@ export const SUPPORTED_PLATFORMS: Record<BrokerPlatform, PlatformConfig> = {
     name: 'MetaTrader 5 (MT5 Bridge)',
     badge: 'Bridge / Manager API',
     servers: [
-      'FundedNext-Server3',
+      'FundedNext-Server 3',
       'FundedNext-Server1',
       'FundedNext-Demo',
       'FTMO-Server',
@@ -108,7 +108,7 @@ export const SUPPORTED_PLATFORMS: Record<BrokerPlatform, PlatformConfig> = {
       'Custom Server Entry...'
     ],
     protocol: 'MT5 WebAPI Gateway / ZeroMQ Bridge',
-    defaultServer: 'FundedNext-Server3',
+    defaultServer: 'FundedNext-Server 3',
     accountPlaceholder: 'e.g. 35211973'
   },
   'mt4': {
@@ -116,7 +116,7 @@ export const SUPPORTED_PLATFORMS: Record<BrokerPlatform, PlatformConfig> = {
     name: 'MetaTrader 4 (MT4 Bridge)',
     badge: 'ZeroMQ Bridge',
     servers: [
-      'FundedNext-Server3',
+      'FundedNext-Server 3',
       'FundedNext-Server1',
       'FundedNext-Demo',
       'FTMO-Server',
@@ -124,7 +124,7 @@ export const SUPPORTED_PLATFORMS: Record<BrokerPlatform, PlatformConfig> = {
       'Custom Server Entry...'
     ],
     protocol: 'MT4 Manager API / ZeroMQ Bridge',
-    defaultServer: 'FundedNext-Server3',
+    defaultServer: 'FundedNext-Server 3',
     accountPlaceholder: 'e.g. 35211973'
   }
 };
@@ -213,6 +213,9 @@ export const LiveBrokerSync: React.FC = () => {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed: SavedConnectionData = JSON.parse(saved);
+        if (parsed.server === 'FundedNext-Server3') {
+          parsed.server = 'FundedNext-Server 3';
+        }
         if (parsed.accountBalance === 100000 || parsed.accountEquity === 105170 || parsed.accountEquity === 102450.50) {
           localStorage.removeItem(STORAGE_KEY);
           setAccountBalance(null);
@@ -262,7 +265,7 @@ export const LiveBrokerSync: React.FC = () => {
   const handleLoadDemoPreset = (preset: 'fundednext' | 'ftmo' | 'apex') => {
     if (preset === 'fundednext') {
       setPlatform('mt5');
-      setServer('FundedNext-Server3');
+      setServer('FundedNext-Server 3');
       setCustomServer('');
       setAccountId('35211973');
       setUsername('funded_pro_quant');
