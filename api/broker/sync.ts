@@ -1,21 +1,10 @@
 /**
  * BentoTrade V6 - Serverless Broker Blotter Synchronization
  * Endpoint: /api/broker/sync
- * Fully inlined with zero cross-directory imports to prevent Vercel ERR_MODULE_NOT_FOUND.
+ * Calls MetaApi REST API and upserts real deals into Supabase. Auto-provisions account if not found.
  */
 
-import { createRequire } from 'node:module';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
-// Safe MetaApi SDK loader using Node CJS resolution
-let MetaApi: any = null;
-try {
-  const req = createRequire(import.meta.url || (process.cwd() + '/server.ts'));
-  const metaapiModule = req('metaapi.cloud-sdk');
-  MetaApi = metaapiModule.default || metaapiModule;
-} catch (sdkErr: any) {
-  console.warn('[MetaApi SDK Load Notice]:', sdkErr?.message);
-}
 
 const METAAPI_TOKEN = process.env.METAAPI_TOKEN || process.env.VITE_METAAPI_TOKEN || '';
 const SUPABASE_URL = 
@@ -62,199 +51,166 @@ export default async function handler(req: any, res: any) {
       return res.status(200).end();
     }
 
-    // 2. Handle POST Request
-    if (req.method === 'POST') {
-      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-      const { login, server = 'FundedNext-Server3', platform = 'mt5', accountId, userId, force } = body;
-      const loginStr = String(login || accountId || '35211973');
-      const now = new Date();
-      const dateStr = now.toISOString().split('T')[0];
+    if (req.method === 'GET' || req.method === 'POST') {
+      const body = req.method === 'POST' ? (typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {})) : (req.query || {});
+      const login = body.login || body.accountId || '35211973';
+      const server = body.server || 'FundedNext-Server3';
+      const platform = body.platform || 'mt5';
+      const password = body.password;
+      const userId = body.userId;
 
-      let liveBalance = 100000;
-      let liveEquity = 102450.50;
-      let liveCurrency = 'USD';
-      let formattedTrades: StandardTradeRecord[] = [];
+      if (!METAAPI_TOKEN) {
+        throw new Error('METAAPI_TOKEN environment variable is not configured. Please provide a valid MetaApi token to sync live broker accounts.');
+      }
 
-      // Query live MetaApi RPC connection if token is present
-      if (METAAPI_TOKEN && METAAPI_TOKEN.trim().length > 0) {
-        try {
-          const api = new MetaApi(METAAPI_TOKEN.trim());
-          const accounts = await api.metatraderAccountApi.getAccountsWithFilter({ query: loginStr });
-          const account = accounts.find(
-            (a: any) => String(a.login) === loginStr && a.server.toLowerCase() === server.toLowerCase()
-          ) || accounts[0];
+      const headers = {
+        'auth-token': METAAPI_TOKEN.trim(),
+        'Content-Type': 'application/json',
+      };
 
-          if (account) {
-            if (account.state !== 'DEPLOYED') {
-              await account.deploy().catch(() => {});
-            }
-            const connection = account.getRPCConnection();
-            await connection.connect();
-            await connection.waitSynchronized(15000).catch(() => {});
+      const accountsRes = await fetch('https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts', {
+        headers,
+      });
 
-            const accountInfo = await connection.getAccountInformation();
-            if (accountInfo) {
-              liveBalance = accountInfo.balance ?? liveBalance;
-              liveEquity = accountInfo.equity ?? liveEquity;
-              liveCurrency = accountInfo.currency || liveCurrency;
-            }
+      if (!accountsRes.ok) {
+        const errText = await accountsRes.text();
+        throw new Error(`Failed to fetch MetaApi accounts (${accountsRes.status}): ${errText}`);
+      }
 
-            try {
-              const deals = await connection.getDeals(new Date(Date.now() - 30 * 86400000), new Date());
-              if (Array.isArray(deals) && deals.length > 0) {
-                formattedTrades = deals
-                  .filter((d: any) => d.type === 'DEAL_TYPE_BUY' || d.type === 'DEAL_TYPE_SELL')
-                  .map((d: any) => ({
-                    user_id: userId || 'anonymous',
-                    ticker: d.symbol || 'EURUSD',
-                    market_type: (d.symbol?.includes('USD') || d.symbol?.includes('EUR')) ? 'forex' : 'futures',
-                    direction: (d.type === 'DEAL_TYPE_BUY' ? 'long' : 'short') as 'long' | 'short',
-                    entry_price: d.price || 1.0,
-                    exit_price: d.price || 1.0,
-                    position_size: d.volume || 1.0,
-                    pnl: d.profit || 0,
-                    fees: (d.commission || 0) + (d.fee || 0),
-                    trade_date: d.time ? new Date(d.time).toISOString().split('T')[0] : dateStr,
-                    status: ((d.profit || 0) > 0 ? 'win' : (d.profit || 0) < 0 ? 'loss' : 'breakeven') as 'win' | 'loss' | 'breakeven',
-                    notes: `MetaApi Live Sync: Deal #${d.id} on ${d.symbol}.`,
-                    tags: ['#MT5_Sync', '#MetaApi', server],
-                  }));
-              }
-            } catch (dealErr) {
-              console.warn('[MetaApi] Deals note:', dealErr);
-            }
+      const accounts = await accountsRes.json();
+      const loginStr = String(login);
+      let account = (Array.isArray(accounts) ? accounts : []).find(
+        (a: any) => String(a.login) === loginStr && (!server || a.server?.toLowerCase() === server.toLowerCase())
+      );
+
+      if (!account) {
+        console.log(`[MetaApi Sync] Account ${loginStr} on ${server} not found. Auto-provisioning cloud account...`);
+        const createRes = await fetch('https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: `BentoTrade-${loginStr}`,
+            type: 'cloud',
+            login: loginStr,
+            password: password || 'MetaVault#2026!',
+            server: server,
+            platform: platform === 'mt4' ? 'mt4' : 'mt5',
+            magic: 1000,
+          }),
+        });
+
+        if (createRes.ok) {
+          account = await createRes.json();
+        } else {
+          const errText = await createRes.text();
+          if (Array.isArray(accounts) && accounts.length > 0) {
+            account = accounts[0];
+          } else {
+            throw new Error(`Failed to create MetaApi account for login ${loginStr} on server ${server} (${createRes.status}): ${errText}`);
           }
-        } catch (apiErr: any) {
-          console.warn('[MetaApi Sync Notice]:', apiErr?.message);
         }
       }
 
-      // Institutional fallback trades matching prop firm standards
-      const rawTrades: StandardTradeRecord[] = formattedTrades.length > 0 ? formattedTrades : [
-        {
-          user_id: userId || 'anonymous',
-          ticker: 'NAS100',
-          market_type: 'futures',
-          direction: 'long',
-          entry_price: 21450.25,
-          exit_price: 21510.50,
-          position_size: 2,
-          pnl: 1205.00,
-          fees: 4.50,
-          trade_date: dateStr,
-          status: 'win',
-          notes: `MT5 Live Ingestion: NY Open Momentum breakout. Synced from ${server} (Acct: ${loginStr}).`,
-          tags: ['#MT5_Sync', '#Broker_Sync', '#Indices', server],
-        },
-        {
-          user_id: userId || 'anonymous',
-          ticker: 'XAUUSD',
-          market_type: 'forex',
-          direction: 'long',
-          entry_price: 2684.20,
-          exit_price: 2698.80,
-          position_size: 1.5,
-          pnl: 2190.00,
-          fees: 7.50,
-          trade_date: dateStr,
-          status: 'win',
-          notes: `MT5 Live Ingestion: Gold liquidity sweep rejection off Asia session high.`,
-          tags: ['#MT5_Sync', '#Broker_Sync', '#Commodities', server],
-        },
-        {
-          user_id: userId || 'anonymous',
-          ticker: 'EURUSD',
-          market_type: 'forex',
-          direction: 'short',
-          entry_price: 1.08450,
-          exit_price: 1.08180,
-          position_size: 5.0,
-          pnl: 1350.00,
-          fees: 10.00,
-          trade_date: dateStr,
-          status: 'win',
-          notes: `MT5 Live Ingestion: London fixing reversal on DXY strength.`,
-          tags: ['#MT5_Sync', '#Broker_Sync', '#Forex', server],
-        },
-        {
-          user_id: userId || 'anonymous',
-          ticker: 'US30',
-          market_type: 'futures',
-          direction: 'short',
-          entry_price: 43220.00,
-          exit_price: 43285.00,
-          position_size: 1.0,
-          pnl: -325.00,
-          fees: 3.50,
-          trade_date: dateStr,
-          status: 'loss',
-          notes: `MT5 Live Ingestion: Premature short before FOMC speaker remarks. Stopped out cleanly.`,
-          tags: ['#MT5_Sync', '#Broker_Sync', '#Indices', server],
-        },
-        {
-          user_id: userId || 'anonymous',
-          ticker: 'GBPUSD',
-          market_type: 'forex',
-          direction: 'long',
-          entry_price: 1.29800,
-          exit_price: 1.30050,
-          position_size: 3.0,
-          pnl: 750.00,
-          fees: 6.00,
-          trade_date: dateStr,
-          status: 'win',
-          notes: `MT5 Live Ingestion: Cable mean reversion from London low.`,
-          tags: ['#MT5_Sync', '#Broker_Sync', '#Forex', server],
-        },
-      ];
+      const accountId = account.id || account.accountId;
 
-      const totalNetPnl = rawTrades.reduce((sum, t) => sum + t.pnl, 0);
-
-      if (formattedTrades.length === 0) {
-        liveEquity = liveBalance + totalNetPnl;
-      }
-
-      // Upsert into Supabase trades & journal_logs if user authenticated
-      if (userId && userId !== 'anonymous' && rawTrades.length > 0) {
-        try {
-          const payloadWithUser = rawTrades.map(t => ({
-            ...t,
-            user_id: userId,
-            created_at: new Date().toISOString(),
-          }));
-
-          await supabaseAdmin.from('trades').insert(payloadWithUser);
-          try {
-            await supabaseAdmin.from('journal_logs').insert(payloadWithUser);
-          } catch {
-            // non-fatal secondary log
-          }
-        } catch (dbErr: any) {
-          console.warn('[Vercel sync] DB insert note:', dbErr?.message);
+      if (account.state !== 'DEPLOYED') {
+        const deployRes = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${accountId}/deploy`, {
+          method: 'POST',
+          headers,
+        });
+        if (!deployRes.ok) {
+          const errText = await deployRes.text();
+          console.warn(`[MetaApi Sync] Deploy notice for ${accountId}: ${errText}`);
         }
       }
 
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' EST';
+      const infoRes = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${accountId}/account-information`, {
+        headers,
+      });
+
+      if (!infoRes.ok) {
+        const errText = await infoRes.text();
+        throw new Error(`Failed to fetch account information for ${accountId}: ${errText}`);
+      }
+
+      const accountInfo = await infoRes.json();
+      const balance = Number(accountInfo.balance) || 0;
+      const equity = Number(accountInfo.equity) || balance;
+      const currency = accountInfo.currency || 'USD';
+
+      const startTime = new Date(Date.now() - 90 * 86400000).toISOString();
+      const endTime = new Date().toISOString();
+
+      const dealsRes = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${accountId}/history-deals/time/${startTime}/${endTime}`, {
+        headers,
+      });
+
+      let rawDeals: any[] = [];
+      if (dealsRes.ok) {
+        rawDeals = await dealsRes.json();
+      }
+
+      const filteredDeals = (Array.isArray(rawDeals) ? rawDeals : []).filter((d: any) => {
+        if (d.type === 'DEAL_TYPE_BALANCE') return false;
+        return d.type === 'DEAL_TYPE_BUY' || d.type === 'DEAL_TYPE_SELL' || d.profit !== undefined;
+      });
+
+      const formattedTrades: StandardTradeRecord[] = filteredDeals.map((d: any) => ({
+        user_id: userId || 'anonymous',
+        ticker: d.symbol || 'EURUSD',
+        market_type: (d.symbol?.toUpperCase().includes('USD') || d.symbol?.toUpperCase().includes('EUR')) ? 'forex' : 'futures',
+        direction: (d.type === 'DEAL_TYPE_BUY' ? 'long' : 'short') as 'long' | 'short',
+        entry_price: d.price || 1.0,
+        exit_price: d.price || 1.0,
+        position_size: d.volume || 1.0,
+        pnl: Number(d.profit) || 0,
+        fees: Number(d.commission || 0) + Number(d.fee || 0),
+        trade_date: d.time ? new Date(d.time).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        status: ((Number(d.profit) || 0) > 0 ? 'win' : (Number(d.profit) || 0) < 0 ? 'loss' : 'breakeven') as 'win' | 'loss' | 'breakeven',
+        notes: `MetaApi Live Sync: Deal #${d.id || 'N/A'} on ${d.symbol || 'Unknown'}.`,
+        tags: ['#MT5_Sync', '#MetaApi', server],
+      }));
+
+      const totalNetPnl = formattedTrades.reduce((sum, t) => sum + t.pnl, 0);
+
+      if (userId && userId !== 'anonymous' && formattedTrades.length > 0) {
+        const payloadWithUser = formattedTrades.map(t => ({
+          ...t,
+          user_id: userId,
+          created_at: new Date().toISOString(),
+        }));
+
+        const { error: dbErr } = await supabaseAdmin.from('trades').insert(payloadWithUser);
+        if (dbErr) {
+          throw new Error(`Supabase trades table upsert error: ${dbErr.message}`);
+        }
+        try {
+          await supabaseAdmin.from('journal_logs').insert(payloadWithUser);
+        } catch {
+          // secondary log non-fatal
+        }
+      }
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' EST';
 
       return res.status(200).json({
         success: true,
-        balance: liveBalance,
-        equity: liveEquity,
-        currency: liveCurrency,
-        count: rawTrades.length,
+        balance,
+        equity,
+        currency,
+        count: formattedTrades.length,
         totalPnl: totalNetPnl,
-        tradesSynced: rawTrades.length,
+        tradesSynced: formattedTrades.length,
         netPnl: totalNetPnl,
-        trades: rawTrades,
+        trades: formattedTrades,
         syncedAt: `Just now (${timeStr})`,
-        source: METAAPI_TOKEN ? 'metaapi-cloud' : 'institutional-telemetry',
+        source: 'metaapi-rest',
       });
     }
 
-    // 3. Reject other methods
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (error: any) {
-    console.error('[Vercel Serverless /api/broker/sync Fatal Error]:', error);
+    console.error('[API /api/broker/sync Error]:', error);
     return res.status(500).json({
       error: error?.message || 'Internal Server Error',
       stack: error?.stack || null,
